@@ -2841,7 +2841,7 @@ const KEYRING_KEY = 'covervault.keyring.v1';
 const PROFILE_KEY = 'covervault.profile.v1';
 const DEVICE_KEY = 'covervault.device.v1';
 const PBKDF2_ITER = 210000;
-const APP_BUILD = '3.5.1';
+const APP_BUILD = '3.7.0';
 
 // Collections that participate in sync (record arrays, merged by id).
 const SYNC_COLLECTIONS = ['products', 'customers', 'suppliers', 'orders', 'activityLog'];
@@ -3026,7 +3026,68 @@ async function keyringUnlock(entry, credential) {
   if (!entry) return null;
   let dek = await unwrapDEK(entry.wrapPin, 'pin:' + credential);
   if (dek) return dek;
-  return await unwrapDEK(entry.wrapPass, 'pw:' + credential);
+  dek = await unwrapDEK(entry.wrapPass, 'pw:' + credential);
+  if (dek) return dek;
+  // Wrapped from the account's synced credential hash rather than from a PIN
+  // this device was told directly — see keyringSyncWithUsers().
+  if (entry.wrapAuto) dek = await unwrapDEK(entry.wrapAuto, 'auto:' + await hashString(credential));
+  return dek;
+}
+
+/**
+ * Let every synced account unlock THIS device.
+ *
+ * Accounts travel with the data, but the vault key is wrapped per credential
+ * and a device cannot wrap a key behind a PIN it has never been told. That is
+ * why a phone set up by the admin could only ever be opened by the admin.
+ *
+ * This closes the gap while the vault is open: for each active account it wraps
+ * this device's key under a secret derived from the credential *hash* that
+ * already travels in settings. At the lock screen the typed PIN is hashed the
+ * same way, so it unwraps — on a device that has never seen that person.
+ *
+ * On cost: the guessing work is unchanged. Before, an attacker brute-forced the
+ * credential through PBKDF2; they still do, with one extra SHA-256 in the way.
+ * What it does mean is that ANY valid username and PIN opens ANY synced device,
+ * which is exactly the point — but it makes a strong PIN matter on every device,
+ * not just its owner's.
+ */
+async function keyringSyncWithUsers() {
+  if (!VAULT_KEY) return 0;
+  const users = state.settings.users || [];
+  if (!users.length) return 0;
+
+  const k = keyringLoad();
+  const me = String((currentUser && currentUser.username) || '').trim().toLowerCase();
+  const allowed = new Set();
+  let changed = 0;
+
+  for (const u of users) {
+    const uname = String(u.username || '').trim().toLowerCase();
+    if (!uname || u.isActive === false) continue;
+    allowed.add(uname);                       // active: keeps any access it already has
+    const authHash = u.pinHash || u.passwordHash;
+    if (!authHash) continue;                  // nothing to derive a wrapper from
+    let entry = k.users.find(x => x.username === uname);
+    if (entry && entry.authHash === authHash) continue;      // already current
+    if (!entry) { entry = { username: uname }; k.users.push(entry); }
+    entry.displayName = u.displayName || entry.displayName || uname;
+    entry.authHash = authHash;                                // re-wrap when the PIN changes
+    entry.wrapAuto = await wrapDEK(VAULT_KEY, 'auto:' + authHash);
+    entry.updatedAt = nowISO();
+    changed++;
+  }
+
+  // A deleted or deactivated account must stop opening this device — including
+  // one that had signed in here directly and so holds its own wrapPin. The only
+  // exception is whoever is signed in right now, who must not be locked out
+  // mid-session; they lose access at the next unlock.
+  const before = k.users.length;
+  k.users = k.users.filter(x => allowed.has(x.username) || x.username === me);
+  if (k.users.length !== before) changed++;
+
+  if (changed) keyringSave(k);
+  return changed;
 }
 
 /** Unlock via any 2 correct security answers. `answers` is index-aligned. */
@@ -3328,6 +3389,14 @@ async function loadData() {
     _tombstones = Object.assign(emptyTombstones(), tombs || {});
     if (sst) syncState = Object.assign(syncState, sst);
 
+    // Pre-3.7 installs kept tidy-up settings under settings.sync, which is
+    // stripped before sending — so they never reached the other devices. Lift
+    // them out once, on load, and they start travelling with everything else.
+    if (!state.settings.autoCompact && state.settings.sync && state.settings.sync.autoCompact) {
+      state.settings.autoCompact = state.settings.sync.autoCompact;
+      delete state.settings.sync.autoCompact;
+    }
+
     for (const c of SYNC_COLLECTIONS) _lastSaved[c] = JSON.parse(JSON.stringify(state[c] || []));
     profileSave();
   } catch (e) {
@@ -3529,6 +3598,30 @@ function collectOutgoing() {
   return { outgoing, total };
 }
 
+/**
+ * Turn raw `_log_` rows into the live record set they describe.
+ *
+ * The log holds one row per EDIT, so a record edited four times arrives four
+ * times — leave them and the same product is listed four times.
+ *
+ * Order matters here. Collapsing to the newest row per id must happen BEFORE
+ * tombstones are dropped: filter first and a deletion row is stripped, leaving
+ * an older live row behind and resurrecting a record that was deleted. Rows
+ * arrive in revision order, so a later row wins ties.
+ *
+ * Only the join/import path needs this. Ordinary sync goes through
+ * mergeRecordList(), which already keys by id and consults the tombstone map.
+ */
+function collapseLogRows(rows) {
+  const newest = new Map();
+  for (const r of (rows || [])) {
+    if (!r || r.id == null) continue;
+    const k = String(r.id), cur = newest.get(k);
+    if (!cur || String(r.updatedAt || '') >= String(cur.updatedAt || '')) newest.set(k, r);
+  }
+  return [...newest.values()].filter(r => !r.deleted);
+}
+
 /** Fold a batch of incoming records into state, honouring tombstones. */
 function applyIncoming(changes) {
   let applied = 0;
@@ -3694,6 +3787,9 @@ async function doSync(auto) {
       await vaultWrite('settings', state.settings);
       await vaultWrite('tombstones', _tombstones);
     }
+    // Accounts may have arrived, changed their PIN, or been deactivated in the
+    // batch just applied — keep who can unlock this device in step with them.
+    await keyringSyncWithUsers().catch(() => { /* never block a sync over this */ });
     await persistSyncState();
 
     syncBusy = false;
@@ -3809,6 +3905,8 @@ async function cleanLegacyTabs() {
 const COMPACTABLE = ['orders', 'products', 'customers', 'suppliers'];
 const HEALTH_COLLECTIONS = ['orders', 'products', 'customers', 'suppliers', 'activityLog'];
 
+/* Legacy shape: installs from before the schedule builder stored a plain
+   "every N days". Still honoured until they save a schedule. */
 const TIDY_FREQUENCIES = [
   { days: 1,   label: 'Every day' },
   { days: 3,   label: 'Every 3 days' },
@@ -3819,6 +3917,200 @@ const TIDY_FREQUENCIES = [
   { days: 180, label: 'Every 6 months' },
 ];
 
+const TIDY_FREQS = [
+  { v: 'hour',  label: 'Every hour' },
+  { v: 'day',   label: 'Every day' },
+  { v: 'week',  label: 'Every week' },
+  { v: 'month', label: 'Every month' },
+  { v: 'year',  label: 'Every year' },
+];
+const WEEKDAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const MONTH_NAMES = ['January','February','March','April','May','June',
+                     'July','August','September','October','November','December'];
+
+const _hhmm = (h, m) => String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+
+function _ordinal(n) {
+  const s = ['th','st','nd','rd'], v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
+/**
+ * Clean a stored schedule into a shape the rest of the code can trust.
+ *
+ * Returns null when nothing has been configured, which is the signal to fall
+ * back to the legacy "every N days" behaviour rather than invent a schedule.
+ */
+function _normalizeSchedule(raw) {
+  if (!raw || !raw.freq) return null;
+  const freq = TIDY_FREQS.some(f => f.v === raw.freq) ? raw.freq : 'day';
+  const list = (a, lo, hi) => [...new Set((Array.isArray(a) ? a : [])
+    .map(Number).filter(n => Number.isInteger(n) && n >= lo && n <= hi))].sort((x, y) => x - y);
+  const s = {
+    freq,
+    hour:   Math.min(23, Math.max(0, parseInt(raw.hour, 10) || 0)),
+    minute: Math.min(59, Math.max(0, parseInt(raw.minute, 10) || 0)),
+    days:   list(raw.days, 0, 6),
+    dates:  list(raw.dates, 1, 31),
+    months: list(raw.months, 1, 12),
+  };
+  // An empty selection could never fire, which would silently disable tidy-up.
+  if (freq === 'week' && !s.days.length) s.days = [0];
+  if ((freq === 'month' || freq === 'year') && !s.dates.length) s.dates = [1];
+  if (freq === 'year' && !s.months.length) s.months = [1];
+  return s;
+}
+
+/** A starting schedule for the editor, derived from whatever the install has. */
+function _scheduleFromLegacy(everyDays) {
+  const d = Number(everyDays) || 1;
+  if (d >= 30) return _normalizeSchedule({ freq: 'month', dates: [1], hour: 2, minute: 0 });
+  if (d >= 3)  return _normalizeSchedule({ freq: 'week', days: [0], hour: 2, minute: 0 });
+  return _normalizeSchedule({ freq: 'day', hour: 2, minute: 0 });
+}
+
+/**
+ * The most recent moment this schedule should have fired, at or before `now`.
+ *
+ * Everything except the hourly case is answered by walking backwards one day
+ * at a time — at most 366 steps, and far easier to get right than closed-form
+ * calendar arithmetic. Returns null if the schedule can never fire.
+ */
+function _tidyLastOccurrence(sch, nowMs) {
+  if (!sch) return null;
+  if (sch.freq === 'hour') {
+    const d = new Date(nowMs);
+    d.setMinutes(0, 0, 0);                  // hourly runs on the hour
+    return d.getTime();
+  }
+  const matches = d => {
+    if (sch.freq === 'day')   return true;
+    if (sch.freq === 'week')  return sch.days.includes(d.getDay());
+    if (sch.freq === 'month') return sch.dates.includes(d.getDate());
+    if (sch.freq === 'year')  return sch.months.includes(d.getMonth() + 1) && sch.dates.includes(d.getDate());
+    return false;
+  };
+  const d = new Date(nowMs);
+  d.setHours(sch.hour, sch.minute, 0, 0);
+  if (d.getTime() > nowMs) d.setDate(d.getDate() - 1);   // today's slot has not arrived yet
+  for (let i = 0; i < 366; i++) {
+    if (matches(d)) return d.getTime();
+    d.setDate(d.getDate() - 1);
+  }
+  return null;
+}
+
+/** Has a scheduled slot passed since the last compaction? */
+function _tidyIsDue(cfg, lastISO) {
+  const last = lastISO ? new Date(lastISO).getTime() : 0;
+  if (!cfg.schedule) return Date.now() - last >= cfg.everyDays * 86400e3;   // legacy installs
+  const slot = _tidyLastOccurrence(cfg.schedule, Date.now());
+  return slot != null && last < slot;
+}
+
+/* ---- the schedule editor -------------------------------------------------
+   Cascading controls: the frequency decides which further questions are worth
+   asking, so the block below the dropdown is rebuilt rather than shown/hidden.
+   Edits land on _tidyDraft, not the DOM, so a rebuild never loses a choice. */
+
+let _tidyDraft = null;
+
+const _TIDY_CHIP_ON  = 'background:var(--brand-primary);color:#fff;border-color:var(--brand-primary)';
+const _TIDY_CHIP_OFF = 'background:var(--bg-input);color:var(--text-secondary);border-color:var(--border-color)';
+
+function _tidyChips(key, values, labels) {
+  const sel = _tidyDraft[key] || [];
+  return `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">${values.map((v, i) =>
+    // min-width keeps 1- and 2-digit dates on a tidy grid, and the padding keeps
+    // the chips thumb-sized rather than the 25px a bare label would give.
+    `<button type="button" onclick="tidyToggle('${key}',${v})"
+      style="min-width:38px;padding:7px 11px;border-radius:16px;border:1px solid;cursor:pointer;
+             font-size:12px;line-height:1;${sel.includes(v) ? _TIDY_CHIP_ON : _TIDY_CHIP_OFF}">${labels[i]}</button>`).join('')}</div>`;
+}
+
+function _tidyTimeHTML() {
+  const s = _tidyDraft;
+  const opt = (n, cur, pad) => `<option value="${n}" ${n === cur ? 'selected' : ''}>${String(n).padStart(pad, '0')}</option>`;
+  return `<div style="display:flex;gap:6px;align-items:center;margin-top:10px;flex-wrap:wrap">
+    <span style="font-size:13px;color:var(--text-secondary)">at</span>
+    <select class="form-control" style="width:auto;padding:4px 8px" onchange="tidySet('hour',this.value)">
+      ${[...Array(24).keys()].map(h => opt(h, s.hour, 2)).join('')}</select>
+    <span style="font-size:13px">:</span>
+    <select class="form-control" style="width:auto;padding:4px 8px" onchange="tidySet('minute',this.value)">
+      ${[0,5,10,15,20,25,30,35,40,45,50,55].map(m => opt(m, s.minute, 2)).join('')}</select>
+    <span style="font-size:12px;color:var(--text-muted)">this device's local time</span>
+  </div>`;
+}
+
+function tidyWhenHTML() {
+  const s = _tidyDraft;
+  const hint = t => `<p style="font-size:11px;color:var(--text-muted);margin:6px 0 0">${t}</p>`;
+
+  if (s.freq === 'hour') {
+    return hint('Runs on the hour. The most aggressive setting — only worth it on a very busy shop.');
+  }
+  if (s.freq === 'day') return _tidyTimeHTML();
+
+  if (s.freq === 'week') {
+    return `<label class="form-label" style="margin-top:10px">On which days</label>
+      ${_tidyChips('days', [0,1,2,3,4,5,6], WEEKDAY_NAMES.map(d => d.slice(0,3)))}
+      ${_tidyTimeHTML()}`;
+  }
+  if (s.freq === 'month') {
+    return `<label class="form-label" style="margin-top:10px">On which dates</label>
+      ${_tidyChips('dates', [...Array(31).keys()].map(n => n + 1), [...Array(31).keys()].map(n => String(n + 1)))}
+      ${_tidyTimeHTML()}
+      ${hint('A date a month does not have is skipped — pick 31 and February never fires.')}`;
+  }
+  // year
+  return `<label class="form-label" style="margin-top:10px">In which months</label>
+    ${_tidyChips('months', [...Array(12).keys()].map(n => n + 1), MONTH_NAMES.map(m => m.slice(0,3)))}
+    <label class="form-label" style="margin-top:10px">On which dates</label>
+    ${_tidyChips('dates', [...Array(31).keys()].map(n => n + 1), [...Array(31).keys()].map(n => String(n + 1)))}
+    ${_tidyTimeHTML()}
+    ${hint('Every selected date in every selected month — two months and two dates means four runs a year.')}`;
+}
+
+function _tidyRepaint() {
+  const el = document.getElementById('acWhen');
+  if (el) el.innerHTML = tidyWhenHTML();
+  const pv = document.getElementById('acPreview');
+  if (pv) pv.textContent = _tidyScheduleLabel(_normalizeSchedule(_tidyDraft));
+}
+
+function tidySetFreq(v) {
+  _tidyDraft = _normalizeSchedule(Object.assign({}, _tidyDraft, { freq: v }));
+  _tidyRepaint();
+}
+
+function tidySet(key, value) {
+  _tidyDraft[key] = parseInt(value, 10) || 0;
+  _tidyRepaint();
+}
+
+function tidyToggle(key, value) {
+  const cur = _tidyDraft[key] || [];
+  // Emptying the list would mean the schedule could never fire, which reads as
+  // "tidy-up is off" without saying so. Keep at least one.
+  if (cur.length === 1 && cur[0] === value) { showToast('Pick at least one', 'warning'); return; }
+  _tidyDraft[key] = cur.includes(value) ? cur.filter(x => x !== value) : [...cur, value].sort((a, b) => a - b);
+  _tidyRepaint();
+}
+
+function _tidyScheduleLabel(sch, everyDays) {
+  if (!sch) return _tidyFrequencyLabel(everyDays);
+  const t = _hhmm(sch.hour, sch.minute);
+  const dates = sch.dates.map(_ordinal).join(', ');
+  switch (sch.freq) {
+    case 'hour':  return 'every hour, on the hour';
+    case 'day':   return 'every day at ' + t;
+    case 'week':  return 'every ' + sch.days.map(d => WEEKDAY_NAMES[d]).join(', ') + ' at ' + t;
+    case 'month': return 'on the ' + dates + ' of every month at ' + t;
+    case 'year':  return 'on ' + sch.months.map(m => MONTH_NAMES[m - 1]).join(', ') + ' ' + dates + ' at ' + t;
+  }
+  return 'on a schedule';
+}
+
 /**
  * Resolved tidy-up settings, per collection.
  *
@@ -3827,7 +4119,11 @@ const TIDY_FREQUENCIES = [
  * Falls back to the older flat shape so existing installs keep their values.
  */
 function autoCompactSettings() {
-  const s = (state.settings.sync || {}).autoCompact || {};
+  // Lives at settings.autoCompact so it TRAVELS. It used to sit under
+  // settings.sync, which settingsForSync() strips wholesale to keep the URL and
+  // secret device-local — so the schedule and thresholds never reached the other
+  // devices. The old location is still read, once, for installs that have it.
+  const s = state.settings.autoCompact || (state.settings.sync || {}).autoCompact || {};
   const base = {
     ratio:     s.ratio     != null ? s.ratio     : 4,
     minRows:   s.minRows   != null ? s.minRows   : 20000,
@@ -3844,7 +4140,7 @@ function autoCompactSettings() {
   }
   const everyDays = s.everyDays != null ? s.everyDays
                   : (s.cooldownHours ? Math.max(1, Math.round(s.cooldownHours / 24)) : 1);
-  return { auto: s.auto !== false, everyDays, per, base };
+  return { auto: s.auto !== false, everyDays, schedule: _normalizeSchedule(s.schedule), per, base };
 }
 
 function _tidyFrequencyLabel(days) {
@@ -3874,8 +4170,7 @@ async function maybeAutoCompact() {
   }
   if (!due) return;
 
-  const last = syncState.lastCompact ? new Date(syncState.lastCompact).getTime() : 0;
-  if (Date.now() - last < cfg.everyDays * 86400e3) return;
+  if (!_tidyIsDue(cfg, syncState.lastCompact)) return;
 
   try {
     showToast('Tidying up the sync sheet…', 'info');
@@ -10761,7 +11056,7 @@ function collectionHealthHTML() {
     ${known
       ? `<p style="font-size:11px;color:var(--text-muted);margin:8px 0 0;line-height:1.6">
            <strong>What counts as healthy</strong> is whatever you set per collection under
-           <em>Automatic tidy-up</em> above; the app checks ${escapeHtml(_tidyFrequencyLabel(cfg.everyDays))}.<br>
+           <em>Automatic tidy-up</em> above; the app checks ${escapeHtml(_tidyScheduleLabel(cfg.schedule, cfg.everyDays))}.<br>
            More rows than records is normal — the sheet appends a row per edit rather than overwriting,
            and compacting reclaims them. The <strong>activity log is never compacted</strong>: every row
            it has ever held is kept as an audit trail, so archiving is the only way to shrink it.</p>`
@@ -11959,7 +12254,11 @@ async function processLogin() {
 
   const entry = keyringFind(username);
   if (!entry) {
-    errEl.textContent = 'No account with that username on this device';
+    // Accounts travel with the data, but the ability to UNLOCK does not — the
+    // key is wrapped per credential, per device. Say what to do about it.
+    errEl.innerHTML = 'No account with that username on this device yet.<br>' +
+      '<span style="font-weight:400">Someone already set up here must unlock the app and add you under ' +
+      '<strong>Settings &rarr; Users &rarr; Set up on this device</strong>.</span>';
     errEl.style.display = ''; return;
   }
 
@@ -12006,6 +12305,11 @@ async function processLogin() {
   if (user.role === 'admin') adminUnlocked = true;
   _sessionCredential = credential;
   localStorage.setItem('covervault_lastUser', user.username);
+
+  // The vault is open, so every other account can now be given a way in here
+  // too. Doing it at unlock (not only after a sync) means a device that already
+  // holds the data is ready for colleagues immediately.
+  await keyringSyncWithUsers().catch(() => { /* not worth blocking a login */ });
 
   // Remove overlay and all its event handlers cleanly
   const overlay = document.getElementById('loginOverlay');
@@ -12255,6 +12559,7 @@ function applyUserPermissions() {
 function renderUsersSettings(el) {
   const users = state.settings.users || [];
   const usersById = new Map(users.map(x => [x.id, x]));
+  const onDevice = new Set(keyringLoad().users.map(k => k.username));
   let rows = users.map(u => {
     const idArg = JSON.stringify(u.id); // quotes string IDs (e.g. 'test_manager_1'), keeps numbers bare
     // Creator-ownership delete rule: root admin can delete any non-root, non-self user;
@@ -12269,12 +12574,18 @@ function renderUsersSettings(el) {
       : (u.createdBy == null
           ? '—'
           : (usersById.get(u.createdBy)?.displayName || '(removed)'));
+    // A device can only unlock for someone whose credential it has wrapped the
+    // vault key under, so "has an account" and "can sign in here" differ.
+    const here = onDevice.has(String(u.username || '').toLowerCase());
     return `<tr>
     <td><strong>${escapeHtml(u.displayName)}</strong></td>
     <td><code>${escapeHtml(u.username)}</code></td>
     <td><span class="badge ${u.role==='admin'?'badge-info':'badge-neutral'}">${u.roleName || u.role}</span></td>
     <td style="font-size:12px;color:var(--text-secondary)">${escapeHtml(creatorName)}</td>
     <td><span class="badge ${u.isActive?'badge-success':'badge-danger'}">${u.isActive?'Active':'Inactive'}</span></td>
+    <td>${here
+      ? '<span class="badge badge-success">Can sign in here</span>'
+      : `<button class="btn btn-secondary btn-sm" onclick="openDeviceAccessModal(${idArg})">Set up on this device</button>`}</td>
     <td><div class="actions-cell">
       <button class="btn-icon" onclick="quickResetUserPin(${idArg})" title="Reset PIN"><svg style="fill:var(--color-warning)"><use href="#icon-lock"/></svg></button>
       <button class="btn-icon" onclick="openUserModal(${idArg})" title="Edit"><svg style="fill:var(--brand-primary)"><use href="#icon-edit"/></svg></button>
@@ -12287,10 +12598,93 @@ function renderUsersSettings(el) {
     <span class="card-title"><svg style="width:18px;height:18px;fill:var(--brand-primary);vertical-align:middle;margin-right:6px"><use href="#icon-user"/></svg>User Management</span>
     <button class="btn btn-primary btn-sm" onclick="openUserModal()"><svg><use href="#icon-add"/></svg> Add User</button>
   </div></div><div class="card-body" style="padding:0"><div class="table-container">
-    <table class="data-table"><thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Created By</th><th>Status</th><th>Actions</th></tr></thead>
-    <tbody>${rows || '<tr><td colspan="6"><div class="empty-state"><p>No users created. The app runs as Admin by default.</p></div></td></tr>'}</tbody>
+    <table class="data-table"><thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Created By</th><th>Status</th><th>This device</th><th>Actions</th></tr></thead>
+    <tbody>${rows || '<tr><td colspan="7"><div class="empty-state"><p>No users created. The app runs as Admin by default.</p></div></td></tr>'}</tbody>
     </table></div></div></div>
-    <div class="card mt-lg"><div class="card-body"><p style="color:var(--text-secondary);font-size:13px"><strong>How it works:</strong> When users exist, a login screen appears on app launch. Each user has a PIN and role-based permissions. Admin users have full access. Custom-role users can have granular view/add/edit/delete permissions per module, with optional data masking for prices and contact info.</p></div></div>`;
+    <div class="card mt-lg"><div class="card-body"><p style="color:var(--text-secondary);font-size:13px"><strong>How it works:</strong> When users exist, a login screen appears on app launch. Each user has a PIN and role-based permissions. Admin users have full access. Custom-role users can have granular view/add/edit/delete permissions per module, with optional data masking for prices and contact info.</p>
+    <p style="color:var(--text-secondary);font-size:13px;margin-top:10px"><strong>&ldquo;This device&rdquo;</strong> shows who can unlock the app here.
+    Everyone with an active account and a PIN is added automatically once this device has synced, so any of your people can sign in on any
+    of your devices with their own username and PIN &mdash; no setup per person, per device. The <strong>Set up on this device</strong> button
+    is only there for the gap before a first sync, or for an account that has no PIN yet.</p>
+    <p style="color:var(--text-secondary);font-size:13px;margin-top:10px"><strong>What that means for a lost phone:</strong> any valid username
+    and PIN opens any of your synced devices. Deactivating someone removes their access from every device on its next sync &mdash; but until
+    that device syncs, their PIN still works on it. Deactivate, then make sure the devices come online.</p></div></div>`;
+}
+
+/**
+ * Add an existing account to THIS device.
+ *
+ * The vault key is wrapped once per credential, so a device can only unlock for
+ * someone whose PIN it has actually seen. Joining a device signs in one account
+ * and wraps the key under that one — which is why everybody else gets "no
+ * account with that username on this device" until they enrol here as well.
+ *
+ * Enrolling needs their own credential, checked against the hash that travels
+ * in settings, so nobody can be added to a device behind their back. It also
+ * needs this session to be unlocked, because the key being wrapped is the one
+ * this session is holding.
+ */
+function openDeviceAccessModal(userId) {
+  const u = (state.settings.users || []).find(x => x.id === userId);
+  if (!u) return;
+  if (!u.pinHash && !u.passwordHash) {
+    showToast('That account has no PIN or password set yet', 'error');
+    return;
+  }
+  // openModal sets the title with textContent, so this must NOT be escaped.
+  openModal(`Set up ${u.displayName || u.username} on this device`, `
+    <p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px">
+      Ask <strong>${escapeHtml(u.displayName || u.username)}</strong> to type their own PIN or password below.
+      This device then wraps its encryption key under it, so they can unlock the app here from now on.
+      It is never stored — only the wrapped key is.</p>
+    <div class="form-group">
+      <label class="form-label">Their PIN or password</label>
+      <input class="form-control" id="devAccessCred" type="password" autocomplete="new-password"
+             autocapitalize="off" autocorrect="off" spellcheck="false"
+             data-lpignore="true" data-1p-ignore data-form-type="other"
+             name="dac-${Math.random().toString(36).slice(2,8)}">
+      <span class="form-hint">Checked against the credential already on their account.</span>
+    </div>
+    <div id="devAccessErr" style="display:none;color:var(--color-danger);font-size:13px;margin-top:6px"></div>`,
+    `<button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+     <button class="btn btn-primary" id="devAccessBtn" onclick="enrolUserOnThisDevice(${JSON.stringify(userId)})">Set up</button>`);
+  setTimeout(() => document.getElementById('devAccessCred')?.focus(), 100);
+}
+
+async function enrolUserOnThisDevice(userId) {
+  const u = (state.settings.users || []).find(x => x.id === userId);
+  const cred = document.getElementById('devAccessCred')?.value || '';
+  const err = document.getElementById('devAccessErr');
+  const btn = document.getElementById('devAccessBtn');
+  const fail = m => { if (err) { err.textContent = m; err.style.display = ''; }
+                      if (btn) { btn.disabled = false; btn.textContent = 'Set up'; } };
+  if (!u) return;
+  if (!cred) { fail('Enter the PIN or password.'); return; }
+  if (!VAULT_KEY) { fail('This session is locked. Unlock the app and try again.'); return; }
+
+  if (btn) { btn.disabled = true; btn.textContent = 'Checking…'; }
+  if (err) err.style.display = 'none';
+  await new Promise(r => setTimeout(r, 10));
+
+  const byPin  = u.pinHash && await verifyHash(cred, u.pinHash);
+  const byPass = !byPin && u.passwordHash && await verifyHash(cred, u.passwordHash);
+  if (!byPin && !byPass) { fail('That does not match this account’s PIN or password.'); return; }
+
+  try {
+    // Wrap under whichever credential actually matched, so unlocking uses the
+    // same one they just proved they know.
+    await keyringRegister(VAULT_KEY, {
+      username: u.username,
+      displayName: u.displayName,
+      pin: byPin ? cred : undefined,
+      password: byPass ? cred : undefined,
+    });
+  } catch (e) { fail('Could not set up: ' + ((e && e.message) || e)); return; }
+
+  closeModal();
+  showToast(`${u.displayName || u.username} can now sign in on this device`, 'success');
+  logActivity(`${u.displayName || u.username} was set up to sign in on a device`, 'blue');
+  renderUsersSettings(document.getElementById('settingsContent'));
 }
 
 function onUserRoleChange() {
@@ -12523,7 +12917,11 @@ async function saveUser(editId) {
     logActivity(`Created new user account: ${name} (${username})`, 'green', { actionType:'create', entityType:'useraccount', entityName:name });
     showToast('User created','success');
   }
-  saveData('settings'); closeModal(); renderUsersSettings(document.getElementById('settingsContent'));
+  saveData('settings'); closeModal();
+  // Reflect the change here at once: a new account can sign in on this device
+  // straight away, and a deactivated one stops being able to.
+  await keyringSyncWithUsers().catch(() => {});
+  renderUsersSettings(document.getElementById('settingsContent'));
 }
 
 /**
@@ -15719,7 +16117,11 @@ function applyLegacyBundle(bundle, mode) {
     const incoming = bundle[coll];
     if (!Array.isArray(incoming)) continue;
     if (mode === 'replace') {
-      state[coll] = incoming;
+      // Never trust the caller to have deduplicated: two rows with one id is
+      // always wrong, and shows up as the same product listed twice.
+      const byId = new Map();
+      for (const r of incoming) if (r && r.id != null) byId.set(String(r.id), r);
+      state[coll] = [...byId.values()];
     } else {
       const map = new Map((state[coll] || []).map(r => [String(r.id), r]));
       for (const r of incoming) {
@@ -15820,11 +16222,10 @@ async function wizardPullFromSheet() {
       if (out.cursors) cursors = Object.assign(cursors, out.cursors);
       if (out.settings) settings = out.settings;
       more = !!out.more;
-      if (more) showToast(`Pulling… ${Object.values(bundle).reduce((n,a)=>n+a.length,0)} records so far`, 'info');
+      if (more) showToast(`Pulling… ${Object.values(bundle).reduce((n,a)=>n+a.length,0)} rows so far`, 'info');
     }
 
-    // Deleted records travel as tombstones; they must not land as live rows.
-    for (const c of Object.keys(bundle)) bundle[c] = bundle[c].filter(r => r && !r.deleted);
+    for (const c of Object.keys(bundle)) bundle[c] = collapseLogRows(bundle[c]);
 
     const counts = applyLegacyBundle({
       products: bundle.products, customers: bundle.customers, suppliers: bundle.suppliers,
@@ -15940,6 +16341,9 @@ function syncSettingsHTML() {
   const kr = keyringLoad();
   const canCfg = canConfigureSync();
   const _ac = autoCompactSettings();
+  // The editor works on a draft so a half-built schedule survives the partial
+  // re-renders that changing the frequency causes.
+  _tidyDraft = _ac.schedule || _scheduleFromLegacy(_ac.everyDays);
 
   return `
     <div class="settings-section">
@@ -15996,12 +16400,14 @@ function syncSettingsHTML() {
           then resyncs once, automatically. The activity log is never compacted.</p>
         <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;margin-bottom:10px">
           <input type="checkbox" id="acAuto" ${_ac.auto ? 'checked' : ''}> Compact automatically</label>
-        <div class="form-group" style="max-width:280px">
-          <label class="form-label">How often to check</label>
-          <select class="form-control" id="acEvery">
-            ${TIDY_FREQUENCIES.map(f => `<option value="${f.days}" ${f.days === _ac.everyDays ? 'selected' : ''}>${f.label}</option>`).join('')}
+        <div class="form-group">
+          <label class="form-label">When to check</label>
+          <select class="form-control" style="max-width:280px" onchange="tidySetFreq(this.value)">
+            ${TIDY_FREQS.map(f => `<option value="${f.v}" ${f.v === _tidyDraft.freq ? 'selected' : ''}>${f.label}</option>`).join('')}
           </select>
-          <span class="form-hint">Compaction makes every device resync once, so it is worth spacing out.</span>
+          <div id="acWhen">${tidyWhenHTML()}</div>
+          <span class="form-hint">Compaction makes every device resync once, so it is worth spacing out.
+            It only runs if a collection is also past its limits below.</span>
         </div>
 
         <div style="overflow-x:auto">
@@ -16045,7 +16451,7 @@ function syncSettingsHTML() {
         </div>
         <p style="font-size:11px;color:var(--text-muted);margin-top:8px">
           ${syncState.lastCompact ? 'Last compacted ' + escapeHtml(syncTimeAgo(syncState.lastCompact)) : 'Never compacted yet'}
-          &middot; checking ${escapeHtml(_tidyFrequencyLabel(_ac.everyDays))}</p>
+          &middot; checking <span id="acPreview">${escapeHtml(_tidyScheduleLabel(_tidyDraft))}</span></p>
       </div>
       ` : `
       <div style="background:var(--bg-input);padding:12px 14px;border-radius:10px">
@@ -16188,14 +16594,16 @@ async function saveAutoCompact() {
     }
     perCollection[c] = entry;
   }
-  state.settings.sync = state.settings.sync || {};
-  state.settings.sync.autoCompact = {
+  state.settings.autoCompact = {
     auto: !!document.getElementById('acAuto')?.checked,
-    everyDays: parseInt(document.getElementById('acEvery')?.value, 10) || 1,
+    schedule: _normalizeSchedule(_tidyDraft),
     perCollection
   };
+  // Drop the pre-3.7 copy, or the stripped-from-sync one would keep shadowing
+  // the shared value on this device.
+  if (state.settings.sync) delete state.settings.sync.autoCompact;
   await saveData('settings');
-  showToast('Tidy-up settings saved', 'success');
+  showToast('Tidy-up settings saved — these now apply on every device', 'success');
   renderDataSettings(document.getElementById('settingsContent'));
 }
 
