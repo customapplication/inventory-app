@@ -2841,7 +2841,7 @@ const KEYRING_KEY = 'covervault.keyring.v1';
 const PROFILE_KEY = 'covervault.profile.v1';
 const DEVICE_KEY = 'covervault.device.v1';
 const PBKDF2_ITER = 210000;
-const APP_BUILD = '3.7.0';
+const APP_BUILD = '3.8.0';
 
 // Collections that participate in sync (record arrays, merged by id).
 const SYNC_COLLECTIONS = ['products', 'customers', 'suppliers', 'orders', 'activityLog'];
@@ -3469,6 +3469,41 @@ function scheduleSync(delay) {
   paintSync();
 }
 
+/* ------------------------- the idle pull -------------------------------
+   Pushing is instant and stays that way. What was missing is a PULL: with the
+   app sitting open and untouched, nothing fetched what anyone else had done.
+   Edits, unlocking, backgrounding and reconnecting all sync — but a counter
+   screen left open all day never heard about a price change.
+
+   This is an idle timer, not a drumbeat: every successful sync re-arms it, so
+   it only fires when nothing has synced for the configured stretch. A busy
+   device therefore makes no extra calls at all. It also skips while the tab is
+   hidden, where the visibilitychange handler already covers the return. */
+
+const PULL_DEFAULT_MINS = 5;
+let pullTimer = null;
+
+/** Minutes between idle pulls. 0 disables it. */
+function pullEveryMins() {
+  const v = state.settings && state.settings.pullEveryMins;
+  if (v === 0 || v === '0') return 0;
+  const n = parseInt(v, 10);
+  return isNaN(n) ? PULL_DEFAULT_MINS : Math.max(1, Math.min(60, n));
+}
+
+function scheduleIdlePull() {
+  clearTimeout(pullTimer);
+  pullTimer = null;
+  const mins = pullEveryMins();
+  if (!mins || !syncOn()) return;
+  pullTimer = setTimeout(() => {
+    if (VAULT_KEY && syncOn() && !syncBusy && document.visibilityState === 'visible') doSync(true);
+    else scheduleIdlePull();          // skipped this turn — try again later
+  }, mins * 60000);
+}
+
+function stopIdlePull() { clearTimeout(pullTimer); pullTimer = null; }
+
 /** Merge a remote record list into a local one: newest updatedAt wins. */
 function mergeRecordList(coll, mine, theirs) {
   const map = new Map();
@@ -3791,6 +3826,7 @@ async function doSync(auto) {
     // batch just applied — keep who can unlock this device in step with them.
     await keyringSyncWithUsers().catch(() => { /* never block a sync over this */ });
     await persistSyncState();
+    scheduleIdlePull();          // re-arm: the countdown is from the last sync
 
     syncBusy = false;
     paintSync();
@@ -3810,6 +3846,7 @@ async function doSync(auto) {
     syncFail++;
     if (!auto) showToast('Sync failed: ' + syncErrMsg, 'error');
     if (pendingCount() > 0) scheduleSync(wait);
+    else scheduleIdlePull();     // nothing queued to retry — keep polling alive
     paintSync();
   }
 }
@@ -4949,6 +4986,7 @@ function logoutUser() {
     _sessionCredential = '';
     VAULT_KEY = null;                      // the key only ever lived in memory
     clearTimeout(syncTimer);
+    stopIdlePull();                        // no polling behind a lock screen
     updateAdminIndicator();
     const lb = document.getElementById('logoutBtn');
     if (lb) lb.style.display = 'none';
@@ -8902,8 +8940,14 @@ function saveOrder(type, editId) {
     }
     showToast('Order updated', 'success');
   } else {
-    orderData.id = state.nextIds.order || 1;
-    state.nextIds.order = orderData.id + 1;
+    // Device-prefixed, like every other record type. This used to take the raw
+    // counter, so two devices both issued order id 2 and the merge — which keys
+    // on id — destroyed one of two genuinely different sales.
+    //
+    // Deliberately its own counter, not the one generateOrderNumber() uses:
+    // sharing it would advance the invoice sequence twice per order and leave
+    // gaps in the numbering.
+    orderData.id = getNextId('orderRec');
     orderData.createdAt = new Date().toISOString();
     state.orders.push(orderData);
     if (status === 'Completed') updateStockForOrder(orderData, false);
@@ -12310,6 +12354,7 @@ async function processLogin() {
   // too. Doing it at unlock (not only after a sync) means a device that already
   // holds the data is ready for colleagues immediately.
   await keyringSyncWithUsers().catch(() => { /* not worth blocking a login */ });
+  scheduleIdlePull();
 
   // Remove overlay and all its event handlers cleanly
   const overlay = document.getElementById('loginOverlay');
@@ -16393,6 +16438,32 @@ function syncSettingsHTML() {
       <div id="syncDiagOut" style="margin-top:10px"></div>
 
       <div style="border-top:1px solid var(--border-color);margin-top:16px;padding-top:14px">
+        <p style="font-size:13px;margin:0 0 8px"><strong>Checking for other people's changes</strong></p>
+        <p style="font-size:12px;color:var(--text-secondary);margin:0 0 10px">
+          Your own edits upload immediately &mdash; that does not change. This is about the other
+          direction: with the app left open and untouched, how often it should look for what
+          <em>other</em> devices have done. It already checks whenever you edit something, unlock the
+          app, or switch back to it, so this only matters for a screen that sits open all day.</p>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;margin-bottom:8px">
+          <input type="checkbox" id="pullOn" ${pullEveryMins() ? 'checked' : ''}
+                 onchange="document.getElementById('pullMins').disabled = !this.checked">
+          Check automatically while the app is open</label>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <span style="font-size:13px;color:var(--text-secondary)">every</span>
+          <input type="number" class="form-control" id="pullMins" min="1" max="60" step="1"
+                 value="${pullEveryMins() || PULL_DEFAULT_MINS}" ${pullEveryMins() ? '' : 'disabled'}
+                 style="width:80px;padding:4px 8px">
+          <span style="font-size:13px;color:var(--text-secondary)">minutes (1&ndash;60)</span>
+          <button class="btn btn-secondary btn-sm" onclick="savePullSettings()">Save</button>
+        </div>
+        <p style="font-size:11px;color:var(--text-muted);margin:8px 0 0">
+          The timer counts from the last sync, so a device already being used makes no extra calls,
+          and nothing runs while the app is in the background. Every minute is fine for one or two
+          devices; with several, 5 minutes keeps well clear of Google's daily script limits.
+          This setting applies to all your devices.</p>
+      </div>
+
+      <div style="border-top:1px solid var(--border-color);margin-top:16px;padding-top:14px">
         <p style="font-size:13px;margin:0 0 8px"><strong>Automatic tidy-up</strong></p>
         <p style="font-size:12px;color:var(--text-secondary);margin:0 0 10px">
           The sheet gains a row every time a record is edited. When it grows past the limit below,
@@ -16604,6 +16675,19 @@ async function saveAutoCompact() {
   if (state.settings.sync) delete state.settings.sync.autoCompact;
   await saveData('settings');
   showToast('Tidy-up settings saved — these now apply on every device', 'success');
+  renderDataSettings(document.getElementById('settingsContent'));
+}
+
+async function savePullSettings() {
+  if (!canConfigureSync()) { showToast('Only an administrator can do this', 'error'); return; }
+  const on = !!document.getElementById('pullOn')?.checked;
+  const raw = parseInt(document.getElementById('pullMins')?.value, 10);
+  const mins = isNaN(raw) ? PULL_DEFAULT_MINS : Math.max(1, Math.min(60, raw));
+  state.settings.pullEveryMins = on ? mins : 0;
+  await saveData('settings');
+  scheduleIdlePull();                       // apply immediately, not at next sync
+  showToast(on ? `Checking every ${mins} minute${mins === 1 ? '' : 's'} while open`
+               : 'Automatic checking turned off', 'success');
   renderDataSettings(document.getElementById('settingsContent'));
 }
 
