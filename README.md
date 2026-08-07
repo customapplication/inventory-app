@@ -24,6 +24,10 @@ local file server. Every feature came across; the storage layer was replaced.
   with configurable filters and pagination
 - **Users and roles** — Admin, Manager, Staff and custom roles with per-module
   permissions
+- **WhatsApp Message** — filter the catalogue and generate the broadcast the shop
+  sends to its groups: models grouped by brand, optional stock counts and a 🆕
+  marker for recent arrivals, with the title, community link and English/Hindi
+  sign-off saved once and shared across devices
 - **Activity log** with 14 tracking toggles and field-level change history
 - **Export** to CSV, Excel and PDF; JSON backup and restore
 - Dark mode, keyboard shortcuts, column resize and reorder, Excel-style column
@@ -40,6 +44,10 @@ a single full-width column that scrolls top to bottom. Nothing scrolls sideways.
 The cards are generated from the same rendered table, so they follow your column
 configuration automatically — rename a column and the chip label changes, hide
 one and the chip disappears. Desktop is untouched and still shows the full table.
+
+Colours are chosen from a row of tappable swatches rather than the device colour
+wheel, which is awkward on a phone and cannot supply the colour's *name* — and
+the name is what reaches the label and the WhatsApp message.
 
 ## How the data is handled
 
@@ -141,5 +149,4 @@ run.bat                    local test server
 ## Updating
 
 Change `index.html`, bump `CACHE` in `sw.js`, upload both. Skip the bump and
-phones keep serving the old code. In-app: **Settings → About → Check for update**
-
+phones keep serving the old code. In-app: **Settings → About → Check for update**.

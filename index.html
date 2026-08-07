@@ -496,8 +496,12 @@ table { border-collapse: collapse; width: 100%; }
 /* Data pages: flex fill so table scrolls inside fixed card */
 #page-products.active, #page-customers.active, #page-suppliers.active,
 #page-sales.active, #page-purchases.active { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
-/* Non-data pages: normal block flow, page-content scrolls them */
-#page-dashboard.active, #page-reports.active, #page-settings.active { display:block; }
+/* Non-data pages: normal block flow, page-content scrolls them.
+   NOTE: this is a hardcoded list, not `.page-section.active`. Adding a new page
+   section means adding its id HERE too, or it stays display:none forever and
+   looks like a blank screen with no error anywhere. */
+#page-dashboard.active, #page-reports.active, #page-settings.active,
+#page-whatsapp.active { display:block; }
 
 /* Data pages (Products, Customers, Suppliers, Sales, Purchases): card fills available space, table body scrolls */
 #page-products.active > .card,
@@ -1225,7 +1229,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
   .print-header h2 { font-size: 18px; }
   .print-footer { display: block !important; text-align: center; margin-top: 20px; font-size: 11px; color: #666; border-top: 1px solid #ddd; padding-top: 8px; }
   /* Force every scrollable/clipped region to expand so the full dashboard prints */
-  .card-body, .table-container, .chart-container,
+  .card-body, .table-container, .chart-container, .chart-hscroll,
   #topProductsChart, #revenueByCategoryChart, #categoryChart,
   #lowStockAlerts, #recentOrdersTable, #salesChart, #kpiGrid,
   .page-section, .page-section.active, .dashboard-grid {
@@ -1688,6 +1692,22 @@ textarea.form-control { resize: vertical; min-height: 80px; }
   }
   .header-left { min-width: 0; flex: 1; gap: 8px; }
   .header-left > div { min-width: 0; }
+  /* The only way to reach the menu on a phone, so it gets a thumb-sized target
+     rather than the 29px a bare icon button gives. */
+  #mobileMenuBtn { width: 40px; height: 40px; flex: 0 0 40px; }
+
+  /* Touch targets. A fair number of controls are sized for a mouse and land at
+     25-27px, which is fiddly with a thumb. Raise the ones you actually tap —
+     deliberately not checkboxes or radios, whose native size is expected. */
+  #exportDropdown .btn-sm,
+  .modal-footer .btn,
+  .modal .btn-sm { min-height: 36px; }
+  .modal select,
+  .modal textarea,
+  .modal input:not([type="checkbox"]):not([type="radio"]):not([type="color"]) { min-height: 36px; }
+  /* The order totals sit in a narrow table column and collapsed to ~49px wide.
+     Their own wrapper scrolls, so widening them does not push the modal about. */
+  #oShipping, #oPackaging, #oTax { min-width: 72px; }
   .header-title {
     font-size: var(--font-size-lg);
     line-height: 1.2;
@@ -1843,6 +1863,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
   <symbol id="icon-image" viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></symbol>
   <symbol id="icon-phone" viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></symbol>
   <symbol id="icon-report" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></symbol>
+  <symbol id="icon-chat" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM7 9h10v2H7V9zm6 5H7v-2h6v2zm4-6H7V6h10v2z"/></symbol>
   <symbol id="icon-download" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></symbol>
   <symbol id="icon-upload" viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z"/></symbol>
   <symbol id="icon-copy" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></symbol>
@@ -1907,6 +1928,10 @@ textarea.form-control { resize: vertical; min-height: 80px; }
       </div>
 
       <div class="nav-section-title">System</div>
+      <div class="nav-item" data-page="whatsapp" onclick="navigateTo('whatsapp')" title="WhatsApp Message" data-nav-tooltip="WhatsApp Message">
+        <span class="nav-icon"><svg><use href="#icon-chat"/></svg></span>
+        <span class="nav-label">WhatsApp Message</span>
+      </div>
       <div class="nav-item" data-page="reports" onclick="navigateTo('reports')" title="Reports" data-nav-tooltip="Reports">
         <span class="nav-icon"><svg><use href="#icon-report"/></svg></span>
         <span class="nav-label">Reports</span>
@@ -2215,6 +2240,11 @@ textarea.form-control { resize: vertical; min-height: 80px; }
         </div>
       </section>
 
+      <!-- ============ WHATSAPP MESSAGE PAGE ============ -->
+      <section class="page-section" id="page-whatsapp">
+        <div id="whatsappContent"></div>
+      </section>
+
       <!-- ============ REPORTS PAGE ============ -->
       <section class="page-section" id="page-reports">
         <div class="tab-bar">
@@ -2404,6 +2434,7 @@ const DEFAULT_SETTINGS = {
         sales:{view:true,add:true,edit:true,delete:true,viewValues:true},
         purchases:{view:true,add:true,edit:true,delete:true,viewValues:true},
         reports:{view:true},
+        whatsapp:{view:true,edit:true},
         // Updated 24-05-2026: Added activityLogsConfig and usersCreateAdmin and value updates.
         settings:{view:true,branding:true,tax:true,data:true,users:false,usersCreateAdmin:false,roles:false,columns:true,security:false,activityLogs:true,activityLogsConfig:true,dropdowns:true,invoiceTemplate:true,reportConfig:true,prodConfig:true,spoConfig:true},
       }
@@ -2418,6 +2449,8 @@ const DEFAULT_SETTINGS = {
         sales:{view:true,add:true,edit:true,delete:false,viewValues:true},
         purchases:{view:false,add:false,edit:false,delete:false,viewValues:false},
         reports:{view:true},
+        // Sales Staff broadcast the stock list but do not rewrite the template.
+        whatsapp:{view:true,edit:false},
         // Updated 24-05-2026: Added activityLogsConfig and usersCreateAdmin and value updates.
         settings:{view:false,branding:false,tax:false,data:false,users:false,usersCreateAdmin:false,roles:false,columns:false,security:false,activityLogs:false,activityLogsConfig:false,dropdowns:false,invoiceTemplate:false,reportConfig:false,prodConfig:false,spoConfig:false},
       }
@@ -2432,6 +2465,8 @@ const DEFAULT_SETTINGS = {
         sales:{view:false,add:false,edit:false,delete:false,viewValues:false},
         purchases:{view:true,add:true,edit:false,delete:false,viewValues:false},
         reports:{view:false},
+        // Warehouse Staff work stock, not customer-facing messaging.
+        whatsapp:{view:false,edit:false},
         // Updated 24-05-2026: Added activityLogsConfig and usersCreateAdmin and value updates.
         settings:{view:false,branding:false,tax:false,data:false,users:false,usersCreateAdmin:false,roles:false,columns:false,security:false,activityLogs:false,activityLogsConfig:false,dropdowns:false,invoiceTemplate:false,reportConfig:false,prodConfig:false,spoConfig:false},
       }
@@ -2446,6 +2481,8 @@ const DEFAULT_SETTINGS = {
         sales:{view:true,add:false,edit:false,delete:false,viewValues:true},
         purchases:{view:true,add:false,edit:false,delete:false,viewValues:true},
         reports:{view:true},
+        // Read-only role: may build a message, may not change the shared wording.
+        whatsapp:{view:true,edit:false},
         // Updated 24-05-2026: Added activityLogsConfig and value updates.
         settings:{view:false,branding:false,tax:false,data:false,users:false,usersCreateAdmin:false,roles:false,columns:false,security:false,activityLogs:false,activityLogsConfig:false,dropdowns:false,invoiceTemplate:false,reportConfig:false,prodConfig:false,spoConfig:false},
       }
@@ -2841,7 +2878,7 @@ const KEYRING_KEY = 'covervault.keyring.v1';
 const PROFILE_KEY = 'covervault.profile.v1';
 const DEVICE_KEY = 'covervault.device.v1';
 const PBKDF2_ITER = 210000;
-const APP_BUILD = '3.8.0';
+const APP_BUILD = '3.10.1';
 
 // Collections that participate in sync (record arrays, merged by id).
 const SYNC_COLLECTIONS = ['products', 'customers', 'suppliers', 'orders', 'activityLog'];
@@ -3068,12 +3105,38 @@ async function keyringSyncWithUsers() {
     allowed.add(uname);                       // active: keeps any access it already has
     const authHash = u.pinHash || u.passwordHash;
     if (!authHash) continue;                  // nothing to derive a wrapper from
+    // Security answers travel as hashes on the account, so recovery can be made
+    // to work on a device the person has never typed their answers into. Without
+    // this, "Forgot PIN" on a phone that was joined (or auto-enrolled) reports
+    // "no security questions were set up on this device" even though the account
+    // has them.
+    const sq = (u.securityQuestions || []).filter(q => q && q.question && q.answerHash);
+    const fp = authHash + '|' + sq.map(q => q.answerHash).join(',');
+
     let entry = k.users.find(x => x.username === uname);
-    if (entry && entry.authHash === authHash) continue;      // already current
+    if (entry && entry.autoFp === fp) continue;               // already current
     if (!entry) { entry = { username: uname }; k.users.push(entry); }
     entry.displayName = u.displayName || entry.displayName || uname;
-    entry.authHash = authHash;                                // re-wrap when the PIN changes
+    entry.authHash = authHash;
+    entry.autoFp = fp;                                        // re-wrap when either changes
     entry.wrapAuto = await wrapDEK(VAULT_KEY, 'auto:' + authHash);
+
+    // Wrapped once per PAIR of answers, mirroring keyringRegister, so the
+    // original "any 2 of 3" recovery still holds.
+    if (sq.length >= 2) {
+      entry.questionsAuto = sq.map(q => q.question);
+      entry.wrapSqAuto = [];
+      for (let i = 0; i < sq.length; i++) {
+        for (let j = i + 1; j < sq.length; j++) {
+          entry.wrapSqAuto.push({
+            idx: [i, j],
+            w: await wrapDEK(VAULT_KEY, 'sqauto:' + sq[i].answerHash + '|' + sq[j].answerHash)
+          });
+        }
+      }
+    } else {
+      delete entry.questionsAuto; delete entry.wrapSqAuto;
+    }
     entry.updatedAt = nowISO();
     changed++;
   }
@@ -3090,13 +3153,37 @@ async function keyringSyncWithUsers() {
   return changed;
 }
 
+/** The questions to ask for this entry, whichever way it was set up. */
+function keyringQuestions(entry) {
+  if (!entry) return [];
+  const own = entry.questions || [];
+  return own.length >= 2 ? own : (entry.questionsAuto || []);
+}
+
+/** Can this entry be recovered by answering questions at all? */
+function keyringHasRecovery(entry) {
+  return !!entry && (((entry.wrapSq || []).length && (entry.questions || []).length >= 2) ||
+                     ((entry.wrapSqAuto || []).length && (entry.questionsAuto || []).length >= 2));
+}
+
 /** Unlock via any 2 correct security answers. `answers` is index-aligned. */
 async function keyringUnlockBySecurity(entry, answers) {
+  // Answers typed on the device this account was set up on.
   for (const cand of (entry && entry.wrapSq) || []) {
     const [i, j] = cand.idx;
     const a = answers[i], b = answers[j];
     if (!normAnswer(a) || !normAnswer(b)) continue;
     const dek = await unwrapDEK(cand.w, 'sq:' + answerSecret([a, b]));
+    if (dek) return dek;
+  }
+  // Answers checked against the hashes that arrived with the account, which is
+  // what makes recovery work on a device the person has never used before.
+  // hashString() normalises the same way, so typing the answer reproduces it.
+  for (const cand of (entry && entry.wrapSqAuto) || []) {
+    const [i, j] = cand.idx;
+    const a = answers[i], b = answers[j];
+    if (!normAnswer(a) || !normAnswer(b)) continue;
+    const dek = await unwrapDEK(cand.w, 'sqauto:' + await hashString(a) + '|' + await hashString(b));
     if (dek) return dek;
   }
   return null;
@@ -4473,6 +4560,57 @@ function escapeHtml(str) {
   return d.innerHTML;
 }
 
+/* The colours phone cases actually come in. Tapping one fills in the name as
+   well as the hex, which is the part the native colour input cannot do. */
+const COLOR_PRESETS = [
+  { name: 'Black',       hex: '#000000' },
+  { name: 'White',       hex: '#FFFFFF' },
+  { name: 'Transparent', hex: '#E8ECF2' },
+  { name: 'Grey',        hex: '#808080' },
+  { name: 'Navy Blue',   hex: '#1B2A55' },
+  { name: 'Sky Blue',    hex: '#4FA8E0' },
+  { name: 'Red',         hex: '#D62828' },
+  { name: 'Maroon',      hex: '#7B1E28' },
+  { name: 'Pink',        hex: '#F48FB1' },
+  { name: 'Purple',      hex: '#7C4DBE' },
+  { name: 'Green',       hex: '#2E8B57' },
+  { name: 'Mint',        hex: '#9FE2BF' },
+  { name: 'Yellow',      hex: '#F4C430' },
+  { name: 'Orange',      hex: '#E8751A' },
+  { name: 'Brown',       hex: '#6B4226' },
+  { name: 'Gold',        hex: '#C9A227' },
+  { name: 'Silver',      hex: '#C0C0C0' },
+  { name: 'Beige',       hex: '#D9C9A8' },
+];
+
+/** A swatch was tapped: set both the hex and the name, then restate selection. */
+function pickProductColor(hex, name) {
+  const hexEl = document.getElementById('pColorHex');
+  const nameEl = document.getElementById('pColor');
+  if (hexEl) hexEl.value = hex;
+  // Only overwrite the name when it is empty or was itself a preset — a typed
+  // name like "Midnight Blue Matte" must survive picking a nearby swatch.
+  if (nameEl) {
+    const cur = nameEl.value.trim();
+    if (!cur || COLOR_PRESETS.some(c => c.name.toLowerCase() === cur.toLowerCase())) {
+      nameEl.value = name;
+    }
+  }
+  _markColorSwatch(hex);
+  if (typeof autoGenerateSKU === 'function') autoGenerateSKU();
+}
+
+/** Ring the swatch matching this hex, clear the others. */
+function _markColorSwatch(hex) {
+  const wrap = document.getElementById('pColorSwatches');
+  if (!wrap) return;
+  wrap.querySelectorAll('button[data-hex]').forEach(b => {
+    const on = (b.dataset.hex || '').toLowerCase() === String(hex || '').toLowerCase();
+    b.style.border = '2px solid ' + (on ? 'var(--brand-primary)' : 'var(--border-color)');
+    b.style.boxShadow = on ? '0 0 0 2px var(--brand-primary-light)' : 'none';
+  });
+}
+
 function generateOrderNumber(type) {
   const cfg = state.settings.orderConfig || {};
   const prefix = type === 'sales' ? (cfg.salesPrefix || 'SO') : (cfg.purchasePrefix || 'PO');
@@ -4579,6 +4717,7 @@ const PAGE_META = {
   suppliers: { title: 'Suppliers', breadcrumb: 'Manage supplier records' },
   sales: { title: 'Sales Orders', breadcrumb: 'Track sales & revenue' },
   purchases: { title: 'Purchase Orders', breadcrumb: 'Track purchases & expenses' },
+  whatsapp: { title: 'WhatsApp Message', breadcrumb: 'Build a stock list to send to your groups' },
   reports: { title: 'Reports', breadcrumb: 'Analytics & reporting' },
   settings: { title: 'Settings', breadcrumb: 'Customize your application' },
 };
@@ -4611,6 +4750,7 @@ function refreshPage(page) {
     case 'suppliers': renderSuppliers(); break;
     case 'sales': renderOrders('sales'); break;
     case 'purchases': renderOrders('purchases'); break;
+    case 'whatsapp': renderWhatsApp(); break;
     case 'reports': switchReportTab('inventory'); break;
     case 'settings': { const tabs = buildSettingsTabs(); switchSettingsTab(tabs[0]?.key || 'about'); break; }
   }
@@ -5464,10 +5604,15 @@ function applyColumnFiltersToData(data, tableKey) {
 
 function renderFilterBadges(tableKey) {
   const filters = columnFilters[tableKey];
-  if (!filters || Object.keys(filters).length === 0) return '';
+  if (!filters) return '';
+  // A key whose value list has been emptied is not an active filter. Counting
+  // keys alone rendered a stray "Filters: / Clear All" strip above the table
+  // with nothing in it.
+  const active = Object.entries(filters).filter(([, v]) => Array.isArray(v) && v.length > 0);
+  if (!active.length) return '';
   let html = '<div class="filter-badges">';
   html += '<span style="font-size:11px;color:var(--text-secondary);margin-right:4px">Filters:</span>';
-  for (const [colKey, values] of Object.entries(filters)) {
+  for (const [colKey, values] of active) {
     values.forEach(v => {
       html += `<span class="filter-badge">${escapeHtml(colKey)}: ${escapeHtml(v)} <button onclick="removeOneFilter('${tableKey}','${colKey}','${escapeHtml(v)}')">&times;</button></span>`;
     });
@@ -6012,10 +6157,28 @@ function openProductModal(editId) {
       </div>
       <div class="form-group">
         <label class="form-label">Color</label>
-        <div style="display:flex;gap:8px">
-          <input type="color" id="pColorHex" value="${p?.colorHex || '#000000'}" style="width:44px;height:36px;border:1px solid var(--border-color);border-radius:6px;cursor:pointer;padding:2px">
+        <!-- The native colour wheel is painful on a phone and does not give the
+             colour a NAME, which is what actually goes on the label. Swatches
+             set both in one tap; the wheel stays for anything unusual. -->
+        <div id="pColorSwatches" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+          ${COLOR_PRESETS.map(c => `
+            <button type="button" title="${escapeHtml(c.name)}" data-hex="${c.hex}"
+              onclick="pickProductColor('${c.hex}',${JSON.stringify(c.name).replace(/"/g,'&quot;')})"
+              style="width:38px;height:38px;border-radius:50%;cursor:pointer;padding:0;
+                     background:${c.hex};border:2px solid ${
+                       (p?.colorHex || '').toLowerCase() === c.hex.toLowerCase()
+                         ? 'var(--brand-primary)' : 'var(--border-color)'};
+                     box-shadow:${(p?.colorHex || '').toLowerCase() === c.hex.toLowerCase()
+                         ? '0 0 0 2px var(--brand-primary-light)' : 'none'}"></button>`).join('')}
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="color" id="pColorHex" value="${p?.colorHex || '#000000'}"
+                 onchange="_markColorSwatch(this.value)"
+                 style="width:44px;height:38px;border:1px solid var(--border-color);border-radius:6px;cursor:pointer;padding:2px"
+                 title="Custom colour">
           <input class="form-control" id="pColor" value="${escapeHtml(p?.color || '')}" placeholder="e.g. Midnight Blue" style="flex:1" oninput="autoGenerateSKU()">
         </div>
+        <span class="form-hint">Tap a swatch to set the colour and its name, or use the square for a custom shade.</span>
       </div>
       <div class="form-group">
         <label class="form-label">Cost Price <span class="required">*</span></label>
@@ -9504,7 +9667,15 @@ function renderMonthlyChart(yearFilter, categoryProductIds) {
   const formatShort = (v) => v >= 1e6 ? (v/1e6).toFixed(1)+'M' : v >= 1e3 ? (v/1e3).toFixed(1)+'K' : v.toFixed(0);
   const barH = 180; // fixed bar area height in pixels
 
-  let html = '<div style="display:flex;align-items:flex-end;gap:4px;height:' + barH + 'px;border-bottom:1px solid var(--border-color)">';
+  // Two 18px bars plus their gap is ~40px per month, so twelve months need
+  // ~510px. On a phone that is wider than the screen and the far months were
+  // simply clipped away with no way to reach them. Bars and labels share one
+  // scroller so they stay aligned; on desktop min-width is under the available
+  // width, so flex:1 spreads them exactly as before and nothing changes.
+  const minChartW = months.length * 40;
+  let html = `<div class="chart-hscroll" style="overflow-x:auto;-webkit-overflow-scrolling:touch">`
+           + `<div style="min-width:${minChartW}px">`;
+  html += '<div style="display:flex;align-items:flex-end;gap:4px;height:' + barH + 'px;border-bottom:1px solid var(--border-color)">';
   months.forEach((m, idx) => {
     const s = visSales[idx], p = visPurch[idx];
     const sH = s > 0 ? Math.max(3, Math.round((s / maxVal) * (barH - 16))) : 0;
@@ -9527,6 +9698,7 @@ function renderMonthlyChart(yearFilter, categoryProductIds) {
   html += '<div style="display:flex;gap:4px">';
   months.forEach(m => { html += `<div style="flex:1;text-align:center;font-size:10px;color:var(--text-secondary);padding-top:4px;font-weight:500">${m}</div>`; });
   html += '</div>';
+  html += '</div></div>';                       // close the shared scroller
 
   document.getElementById('salesChart').innerHTML = html;
 }
@@ -11861,14 +12033,21 @@ document.addEventListener('keydown', function (e) {
 // ============================================================
 function checkMobile() {
   const btn = document.getElementById('mobileMenuBtn');
+  if (!btn) return;
   if (window.innerWidth <= 768) {
     btn.style.display = 'flex';
   } else {
     btn.style.display = 'none';
-    document.getElementById('sidebar').classList.remove('mobile-open');
+    document.getElementById('sidebar')?.classList.remove('mobile-open');
   }
 }
 window.addEventListener('resize', checkMobile);
+// Run it once at startup too. The button carries an inline display:none, and a
+// phone loading straight into the mobile width never fires a resize — so
+// without this the menu button stays hidden and the sidebar cannot be opened
+// at all, leaving the app unnavigable on the device it was built for.
+checkMobile();
+window.addEventListener('orientationchange', checkMobile);
 
 // ============================================================
 // 25. SETTINGS SECURITY TAB
@@ -12190,6 +12369,324 @@ function showKeyboardShortcutsHelp() {
 }
 
 // ============================================================
+// 28C. WHATSAPP MESSAGE BUILDER
+// ============================================================
+/* Turns the product list into the broadcast message the shop sends to its
+   WhatsApp groups: a title, models grouped under their brand, then the
+   community link and the two promo blocks.
+
+   The message lists MODELS, not products. One model usually exists several
+   times over (one row per colour), so models are de-duplicated and their stock
+   summed — otherwise a phone sold in four colours would be listed four times. */
+
+const WA_DEFAULTS = {
+  title: 'NEW BOOM TPU 4 CORNER BUMPER CASE',
+  link: '',
+  english: '',
+  hindi: '',
+  showQty: false,
+  qtyLabel: 'pcs',
+  markNew: false,
+  newDays: 30,
+};
+
+// Draft filter state for the page. Not persisted — it is a scratchpad.
+let waFilters = { search: '', brand: [], model: [], color: [], category: [],
+                  costMin: '', costMax: '', stock: 'in' };
+
+function waCfg() {
+  return Object.assign({}, WA_DEFAULTS, state.settings.whatsapp || {});
+}
+
+/** Distinct values of a product field, blanks dropped, natural order kept. */
+function waValues(field) {
+  const seen = new Set();
+  for (const p of (state.products || [])) {
+    const v = (p && p[field] != null ? String(p[field]) : '').trim();
+    if (v) seen.add(v);
+  }
+  return [...seen].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+}
+
+/** Products passing the current filters. */
+function waMatchingProducts() {
+  const f = waFilters;
+  const q = f.search.trim().toLowerCase();
+  const min = f.costMin === '' ? null : Number(f.costMin);
+  const max = f.costMax === '' ? null : Number(f.costMax);
+  const listed = (arr, v) => !arr.length || arr.includes(String(v || '').trim());
+
+  return (state.products || []).filter(p => {
+    if (!p) return false;
+    const stock = Number(p.inStock) || 0;
+    if (f.stock === 'in' && stock <= 0) return false;
+    if (f.stock === 'out' && stock > 0) return false;
+    if (!listed(f.brand, p.brand)) return false;
+    if (!listed(f.model, p.model)) return false;
+    if (!listed(f.color, p.color)) return false;
+    if (!listed(f.category, p.category)) return false;
+    const cost = Number(p.purchasePrice) || 0;
+    if (min != null && cost < min) return false;
+    if (max != null && cost > max) return false;
+    if (q) {
+      const hay = [p.name, p.brand, p.model, p.color, p.category, p.sku]
+        .map(x => String(x || '').toLowerCase()).join(' ');
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+}
+
+/** Is this product recent enough to earn the 🆕 marker? */
+function waIsNew(p, days) {
+  const t = Date.parse(p.createdAt || '');
+  if (isNaN(t)) return false;
+  return (Date.now() - t) <= days * 86400e3;
+}
+
+/**
+ * Group matching products into brand -> [model lines].
+ *
+ * Grouping key is the brand; the line is the model (falling back to the product
+ * name when a product carries no model, so nothing silently disappears).
+ */
+function waGroupedModels() {
+  const cfg = waCfg();
+  const groups = new Map();                  // brand -> Map(model -> {qty, isNew})
+  for (const p of waMatchingProducts()) {
+    const brand = (p.brand || '').trim() || 'OTHER';
+    const model = (p.model || '').trim() || (p.name || '').trim();
+    if (!model) continue;
+    if (!groups.has(brand)) groups.set(brand, new Map());
+    const models = groups.get(brand);
+    const cur = models.get(model) || { qty: 0, isNew: false };
+    cur.qty += Number(p.inStock) || 0;
+    // A model counts as new if ANY of its colour variants is new.
+    if (cfg.markNew && waIsNew(p, cfg.newDays)) cur.isNew = true;
+    models.set(model, cur);
+  }
+  return groups;
+}
+
+function waBuildMessage() {
+  const cfg = waCfg();
+  const groups = waGroupedModels();
+  const out = [];
+
+  if (cfg.title.trim()) out.push('*' + cfg.title.trim() + '*', '');
+
+  for (const [brand, models] of groups) {
+    out.push('', '*' + brand.toUpperCase() + '*');
+    for (const [model, info] of models) {
+      let line = model;
+      if (cfg.showQty) line += ` (${info.qty} ${cfg.qtyLabel})`;
+      if (info.isNew) line += '🆕';
+      out.push(line);
+    }
+  }
+
+  const tail = [cfg.link, cfg.english, cfg.hindi].map(s => (s || '').trim()).filter(Boolean);
+  if (tail.length) out.push('', ...tail.flatMap(t => [t, '']));
+
+  return out.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+function waStats() {
+  const groups = waGroupedModels();
+  let models = 0;
+  for (const m of groups.values()) models += m.size;
+  return { brands: groups.size, models, products: waMatchingProducts().length };
+}
+
+/* --------------------------------- UI ---------------------------------- */
+
+function waChips(field, key) {
+  const values = waValues(field);
+  if (!values.length) return '<p style="font-size:12px;color:var(--text-muted);margin:4px 0 0">None yet</p>';
+  const sel = waFilters[key];
+  return `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;max-height:140px;overflow:auto">${
+    values.map(v => `<button type="button" onclick="waToggle('${key}',${JSON.stringify(v).replace(/"/g,'&quot;')})"
+      style="min-width:38px;padding:7px 11px;border-radius:16px;border:1px solid;cursor:pointer;font-size:12px;line-height:1;
+             ${sel.includes(v) ? _TIDY_CHIP_ON : _TIDY_CHIP_OFF}">${escapeHtml(v)}</button>`).join('')}</div>`;
+}
+
+function waToggle(key, value) {
+  const cur = waFilters[key];
+  waFilters[key] = cur.includes(value) ? cur.filter(x => x !== value) : [...cur, value];
+  renderWhatsApp();
+}
+
+function waSet(key, value) { waFilters[key] = value; renderWhatsApp(); }
+
+function waClearFilters() {
+  waFilters = { search: '', brand: [], model: [], color: [], category: [],
+                costMin: '', costMax: '', stock: 'in' };
+  renderWhatsApp();
+}
+
+function renderWhatsApp() {
+  const el = document.getElementById('whatsappContent');
+  if (!el) return;
+  // Hiding the nav entry is not enough on its own — refreshPage() can be reached
+  // by other routes, so the page enforces the permission itself.
+  if (!canAccess('whatsapp', 'view')) {
+    el.innerHTML = `<div class="card"><div class="card-body"><div class="empty-state">
+      <h3>Not available</h3><p>Your role does not include the WhatsApp message builder.
+      Ask an administrator if you need it.</p></div></div></div>`;
+    return;
+  }
+  const canEditText = canAccess('whatsapp', 'edit');
+  const cfg = waCfg();
+  const s = waStats();
+  const msg = waBuildMessage();
+  const sel = (k, v) => waFilters[k] === v ? 'selected' : '';
+
+  el.innerHTML = `
+  <div class="card"><div class="card-body">
+    <p style="font-size:13px;margin:0 0 10px;color:var(--text-secondary)">
+      Pick what to advertise, then copy the message and paste it into WhatsApp. The message lists
+      <strong>models grouped by brand</strong> &mdash; a phone stocked in four colours is listed once,
+      with the stock added up.</p>
+
+    <div class="form-group">
+      <label class="form-label">Search</label>
+      <input class="form-control" id="waSearch" value="${escapeHtml(waFilters.search)}"
+             placeholder="Name, brand, model, colour, category or SKU"
+             oninput="waFilters.search=this.value;waRefreshPreview()">
+    </div>
+
+    <div style="display:flex;gap:14px;flex-wrap:wrap">
+      <div style="flex:1;min-width:220px"><label class="form-label">Brand</label>${waChips('brand','brand')}</div>
+      <div style="flex:1;min-width:220px"><label class="form-label">Category</label>${waChips('category','category')}</div>
+    </div>
+    <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:10px">
+      <div style="flex:1;min-width:220px"><label class="form-label">Colour</label>${waChips('color','color')}</div>
+      <div style="flex:1;min-width:220px"><label class="form-label">Model</label>${waChips('model','model')}</div>
+    </div>
+
+    <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;margin-top:12px">
+      <div><label class="form-label">Cost price from</label>
+        <input class="form-control" type="number" min="0" style="width:120px" value="${escapeHtml(String(waFilters.costMin))}"
+               oninput="waFilters.costMin=this.value;waRefreshPreview()"></div>
+      <div><label class="form-label">to</label>
+        <input class="form-control" type="number" min="0" style="width:120px" value="${escapeHtml(String(waFilters.costMax))}"
+               oninput="waFilters.costMax=this.value;waRefreshPreview()"></div>
+      <div><label class="form-label">Stock</label>
+        <select class="form-control" style="width:auto" onchange="waSet('stock',this.value)">
+          <option value="in" ${sel('stock','in')}>In stock only</option>
+          <option value="out" ${sel('stock','out')}>Out of stock only</option>
+          <option value="all" ${sel('stock','all')}>All, in stock or not</option>
+        </select></div>
+      <button class="btn btn-secondary btn-sm" onclick="waClearFilters()">Clear filters</button>
+    </div>
+
+    ${canEditText ? `
+    <div style="border-top:1px solid var(--border-color);margin-top:14px;padding-top:12px;display:flex;gap:16px;flex-wrap:wrap">
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
+        <input type="checkbox" ${cfg.showQty ? 'checked' : ''} onchange="waSaveOption('showQty',this.checked)">
+        Show stock after each model &mdash; <code>SAM S22 ULTRA (25 ${escapeHtml(cfg.qtyLabel)})</code></label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
+        <input type="checkbox" ${cfg.markNew ? 'checked' : ''} onchange="waSaveOption('markNew',this.checked)">
+        Mark models added in the last
+        <input type="number" min="1" max="365" value="${cfg.newDays}" style="width:64px;padding:3px 6px"
+               onclick="event.stopPropagation()" onchange="waSaveOption('newDays',this.value)"> days with 🆕</label>
+    </div>` : ''}
+  </div></div>
+
+  <div class="card mt-lg"><div class="card-body">
+    <div class="table-toolbar" style="width:100%;margin-bottom:10px">
+      <span class="card-title">Message preview</span>
+      <div class="btn-group">
+        <button class="btn btn-primary" onclick="waCopy()"><svg><use href="#icon-copy"/></svg> Copy message</button>
+      </div>
+    </div>
+    <p style="font-size:12px;color:var(--text-secondary);margin:0 0 8px" id="waStats">${waStatsLine()}</p>
+    <textarea id="waPreview" class="form-control" rows="18" readonly
+      style="font-family:ui-monospace,Consolas,monospace;font-size:12px;line-height:1.5;white-space:pre">${escapeHtml(msg)}</textarea>
+  </div></div>
+
+  ${!canEditText ? '' : `
+  <div class="card mt-lg"><div class="card-body">
+    <p style="font-size:13px;margin:0 0 4px"><strong>Message text</strong></p>
+    <p style="font-size:12px;color:var(--text-secondary);margin:0 0 12px">
+      Saved with your data, so every device and every message uses the same wording.
+      WhatsApp shows text wrapped in *asterisks* in bold.</p>
+    <div class="form-group">
+      <label class="form-label">First line (the style being offered)</label>
+      <input class="form-control" id="waTitle" value="${escapeHtml(cfg.title)}"
+             placeholder="NEW BOOM TPU 4 CORNER BUMPER CASE"></div>
+    <div class="form-group">
+      <label class="form-label">Community link</label>
+      <input class="form-control" id="waLink" value="${escapeHtml(cfg.link)}"
+             placeholder="https://chat.whatsapp.com/…"></div>
+    <div class="form-group">
+      <label class="form-label">Closing message &mdash; English</label>
+      <textarea class="form-control" id="waEnglish" rows="5"
+        placeholder="✨ Join our WhatsApp Community …">${escapeHtml(cfg.english)}</textarea></div>
+    <div class="form-group">
+      <label class="form-label">Closing message &mdash; Hindi</label>
+      <textarea class="form-control" id="waHindi" rows="5"
+        placeholder="✨ हमारे WhatsApp Community से जुड़ें! …">${escapeHtml(cfg.hindi)}</textarea></div>
+    <div class="form-group" style="max-width:200px">
+      <label class="form-label">Word after the stock number</label>
+      <input class="form-control" id="waQtyLabel" value="${escapeHtml(cfg.qtyLabel)}" placeholder="pcs"></div>
+    <button class="btn btn-secondary" onclick="waSaveText()">Save message text</button>
+  </div></div>`}`;
+}
+
+function waStatsLine() {
+  const s = waStats();
+  const n = (v, w) => v + ' ' + w + (v === 1 ? '' : 's');
+  return `${n(s.models,'model')} across ${n(s.brands,'brand')}, from ${n(s.products,'product row')}.`;
+}
+
+/** Update just the preview, so typing in the search box does not rebuild the page. */
+function waRefreshPreview() {
+  const pv = document.getElementById('waPreview');
+  if (pv) pv.value = waBuildMessage();
+  const st = document.getElementById('waStats');
+  if (st) st.textContent = waStatsLine();
+}
+
+async function waSaveOption(key, value) {
+  if (!canAccess('whatsapp', 'edit')) { showToast('You cannot change the message settings', 'error'); return; }
+  const cfg = waCfg();
+  cfg[key] = key === 'newDays' ? Math.max(1, Math.min(365, parseInt(value, 10) || 30)) : value;
+  state.settings.whatsapp = cfg;
+  await saveData('settings');
+  renderWhatsApp();
+}
+
+async function waSaveText() {
+  if (!canAccess('whatsapp', 'edit')) { showToast('You cannot change the message text', 'error'); return; }
+  const cfg = waCfg();
+  cfg.title    = document.getElementById('waTitle').value;
+  cfg.link     = document.getElementById('waLink').value.trim();
+  cfg.english  = document.getElementById('waEnglish').value;
+  cfg.hindi    = document.getElementById('waHindi').value;
+  cfg.qtyLabel = document.getElementById('waQtyLabel').value.trim() || 'pcs';
+  state.settings.whatsapp = cfg;
+  await saveData('settings');
+  showToast('Message text saved', 'success');
+  renderWhatsApp();
+}
+
+async function waCopy() {
+  const text = waBuildMessage();
+  if (!text) { showToast('Nothing to copy — no products match', 'warning'); return; }
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast('Message copied — paste it into WhatsApp', 'success');
+  } catch (e) {
+    // Clipboard access needs a secure context and a user gesture; select the
+    // text so it can still be copied by hand rather than failing silently.
+    const pv = document.getElementById('waPreview');
+    if (pv) { pv.removeAttribute('readonly'); pv.select(); pv.setAttribute('readonly',''); }
+    showToast('Could not copy automatically — the text is selected, press Ctrl+C', 'warning');
+  }
+}
+
+// ============================================================
 // 29B. USER MANAGEMENT
 // ============================================================
 // Settings-module permission keys that count as privilege-escalation surfaces.
@@ -12205,6 +12702,7 @@ const DEFAULT_PERMISSIONS = {
   sales:{view:true,add:true,edit:true,delete:true,viewValues:true},
   purchases:{view:true,add:true,edit:true,delete:true,viewValues:true},
   reports:{view:true},
+  whatsapp:{view:true,edit:true},
   // Updated 24-05-2026: Added activityLogsConfig and usersCreateAdmin under settings and updated all value to true from false.
   settings:{view:true,branding:true,tax:true,data:true,users:true,usersCreateAdmin:false,roles:true,columns:true,security:true,activityLogs:true,activityLogsConfig:true,dropdowns:true,invoiceTemplate:true,reportConfig:true,prodConfig:true,spoConfig:true},
 };
@@ -12264,8 +12762,10 @@ function showLoginScreen() {
     <button class="btn btn-primary btn-lg" id="loginBtn" style="width:100%;display:flex;align-items:center;justify-content:center" onclick="processLogin()">Unlock</button>
     <p style="font-size:11px;color:var(--text-muted);margin-top:10px">Your data is encrypted on this device. Your PIN is the key.</p>
     <div style="margin-top:14px;display:flex;justify-content:center;gap:16px;flex-wrap:wrap">
-      <button type="button" id="btnForgotPwd" style="font-size:12px;color:var(--text-muted);text-decoration:underline;cursor:pointer;background:none;border:none;padding:0">Forgot PIN/Password?</button>
-      <button type="button" id="btnForgotUser" style="font-size:12px;color:var(--text-muted);text-decoration:underline;cursor:pointer;background:none;border:none;padding:0">Forgot Username?</button>
+      <!-- Padding, not padding:0 — these are the entire recovery route for someone
+           locked out, and a 16px underlined link is a miserable thumb target. -->
+      <button type="button" id="btnForgotPwd" style="font-size:13px;color:var(--text-muted);text-decoration:underline;cursor:pointer;background:none;border:none;padding:10px 6px">Forgot PIN/Password?</button>
+      <button type="button" id="btnForgotUser" style="font-size:13px;color:var(--text-muted);text-decoration:underline;cursor:pointer;background:none;border:none;padding:10px 6px">Forgot Username?</button>
     </div>
   </div>`;
   document.body.appendChild(overlay);
@@ -12476,9 +12976,11 @@ function forgotPasswordContinue() {
 function _showSecurityQuestionsForUser(username, card) {
   const entry = keyringFind(username);
   if (!entry) { showToast('No account with that username on this device', 'error'); return; }
-  const qs = entry.questions || [];
-  if (qs.length < 2 || !(entry.wrapSq || []).length) {
-    showToast('No security questions were set up for this account on this device.', 'error');
+  const qs = keyringQuestions(entry);
+  if (!keyringHasRecovery(entry)) {
+    showToast(qs.length
+      ? 'This device has not synced this account’s recovery questions yet. Unlock once on a synced device, or ask an admin to reset the PIN.'
+      : 'No security questions were set up for this account.', 'error');
     return;
   }
 
@@ -12499,7 +13001,9 @@ let _recoveredDEK = null;
 async function verifyForgotPassword(username) {
   const entry = keyringFind(username);
   if (!entry) return;
-  const answers = (entry.questions || []).map((_, i) => document.getElementById('forgotA'+i)?.value || '');
+  // Must use the same list the form was built from, or an account recovered via
+  // its synced questions collects zero answers and always fails.
+  const answers = keyringQuestions(entry).map((_, i) => document.getElementById('forgotA'+i)?.value || '');
   const btn = document.getElementById('forgotVerifyBtn');
   if (btn) { btn.disabled = true; btn.textContent = 'Checking…'; }
   await new Promise(r => setTimeout(r, 10));
@@ -12542,6 +13046,34 @@ async function saveForgotCredentials(username) {
     pin,
     password: pass || undefined
   });
+
+  // Change the credential on the ACCOUNT too, not just this device's wrapper.
+  // The account's pinHash is what keyringSyncWithUsers() derives its unlock
+  // wrapper from, so leaving it stale would let the OLD pin keep working —
+  // here and, once synced, on every other device as well.
+  try {
+    VAULT_KEY = _recoveredDEK;
+    const s = await vaultRead('settings');
+    const u = s && Array.isArray(s.users)
+      ? s.users.find(x => String(x.username || '').toLowerCase() === username) : null;
+    if (u) {
+      u.pinHash = await hashString(pin);
+      if (pass) u.passwordHash = await hashString(pass);
+      s.updatedAt = nowISO();
+      await vaultWrite('settings', s);
+    }
+  } catch (e) {
+    console.warn('Could not update the stored credential', e);
+  } finally {
+    VAULT_KEY = null;                       // stay locked; they still have to sign in
+  }
+
+  // Drop the wrapper built from the OLD hash so the old PIN stops working now
+  // rather than at the next sync. It is rebuilt from the new hash after login.
+  const k = keyringLoad();
+  const e2 = k.users.find(x => x.username === username);
+  if (e2) { delete e2.wrapAuto; delete e2.authHash; delete e2.autoFp; keyringSave(k); }
+
   _recoveredDEK = null;
   _restoreLoginCard();
   showToast('PIN updated. You can now unlock.', 'success');
@@ -12582,7 +13114,9 @@ function searchUsername() {
 }
 
 function applyUserPermissions() {
-  const moduleMap = { dashboard:'dashboard', products:'products', customers:'customers', suppliers:'suppliers', sales:'sales', purchases:'purchases', reports:'reports', settings:'settings' };
+  // Every page id must appear here. A page missing from this map falls through
+  // the `if (!mod) return` below and is shown to EVERYONE regardless of role.
+  const moduleMap = { dashboard:'dashboard', products:'products', customers:'customers', suppliers:'suppliers', sales:'sales', purchases:'purchases', whatsapp:'whatsapp', reports:'reports', settings:'settings' };
   document.querySelectorAll('.nav-item[data-page]').forEach(nav => {
     const page = nav.dataset.page;
     const mod = moduleMap[page];
@@ -12776,6 +13310,10 @@ function openUserModal(editId) {
     {key:'suppliers',label:'Suppliers',actions:['view','add','edit','delete','viewContact']},
     {key:'sales',label:'Sales Orders',actions:['view','add','edit','delete','viewValues']},
     {key:'purchases',label:'Purchases',actions:['view','add','edit','delete','viewValues']},
+    // 'edit' is the saved wording (title, link, closing text, toggles). It is
+    // shared across devices, so building a message and rewriting the template
+    // for everyone are deliberately separate rights.
+    {key:'whatsapp',label:'WhatsApp Message',actions:['view','edit']},
     {key:'reports',label:'Reports',actions:['view']},
     // Updated 24-05-2026: Added invoiceTemplate and usersCreateAdmin
     {key:'settings',label:'Settings',actions:['view','branding','tax','data','users','usersCreateAdmin','roles','columns','security','activityLogs','activityLogsConfig','dropdowns','invoiceTemplate','reportConfig','prodConfig','spoConfig']},
@@ -13093,6 +13631,10 @@ function openRoleModal(editId) {
     {key:'suppliers',label:'Suppliers',actions:['view','add','edit','delete','viewContact']},
     {key:'sales',label:'Sales Orders',actions:['view','add','edit','delete','viewValues']},
     {key:'purchases',label:'Purchases',actions:['view','add','edit','delete','viewValues']},
+    // 'edit' is the saved wording (title, link, closing text, toggles). It is
+    // shared across devices, so building a message and rewriting the template
+    // for everyone are deliberately separate rights.
+    {key:'whatsapp',label:'WhatsApp Message',actions:['view','edit']},
     {key:'reports',label:'Reports',actions:['view']},
     // Updated 24-05-2026: Added invoiceTemplate and usersCreateAdmin
     {key:'settings',label:'Settings',actions:['view','branding','tax','data','users','usersCreateAdmin','roles','columns','security','activityLogs','activityLogsConfig','dropdowns','invoiceTemplate','reportConfig','prodConfig','spoConfig']},
@@ -16556,7 +17098,7 @@ function syncSettingsHTML() {
       <ul style="font-size:13px;line-height:1.9;margin:0 0 12px 18px">
         ${kr.users.map(u => `<li><strong>${escapeHtml(u.displayName || u.username)}</strong>
           <span style="color:var(--text-muted)">(${escapeHtml(u.username)})</span>
-          ${(u.wrapSq||[]).length ? '<span class="badge badge-success" style="margin-left:6px">recovery set</span>' : '<span class="badge" style="margin-left:6px">no recovery</span>'}</li>`).join('') || '<li>None</li>'}
+          ${keyringHasRecovery(u) ? '<span class="badge badge-success" style="margin-left:6px">recovery set</span>' : '<span class="badge" style="margin-left:6px">no recovery</span>'}</li>`).join('') || '<li>None</li>'}
       </ul>
       <button class="btn btn-secondary btn-sm" onclick="openEnableDeviceLogin()">Let another account unlock this device</button>
       <p style="font-size:11px;color:var(--text-muted);margin-top:10px">
