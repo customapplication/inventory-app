@@ -1,0 +1,16 @@
+{
+  "name": "Inventory Manager",
+  "short_name": "Inventory",
+  "description": "Offline-first inventory, orders and invoicing. Data encrypted on your device.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#FFF6E9",
+  "theme_color": "#6C5CE7",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
