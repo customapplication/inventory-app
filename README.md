@@ -141,4 +141,5 @@ run.bat                    local test server
 ## Updating
 
 Change `index.html`, bump `CACHE` in `sw.js`, upload both. Skip the bump and
-phones keep serving the old code. In-app: **Settings → About → Check for update**.
+phones keep serving the old code. In-app: **Settings → About → Check for update**
+
