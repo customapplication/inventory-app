@@ -1708,6 +1708,53 @@ textarea.form-control { resize: vertical; min-height: 80px; }
   /* The order totals sit in a narrow table column and collapsed to ~49px wide.
      Their own wrapper scrolls, so widening them does not push the modal about. */
   #oShipping, #oPackaging, #oTax { min-width: 72px; }
+
+  /* Per-collection health: four columns, one of them a sentence, is unreadable
+     at 375px. Stack each row into a labelled card instead. */
+  .health-table { display: block; }
+  .health-table thead { display: none; }
+  .health-table tbody { display: block; }
+  .health-table tr {
+    display: flex;
+    flex-wrap: wrap;
+    background: var(--bg-card);
+    border-radius: 10px;
+    padding: 8px 10px;
+    margin-bottom: 8px;
+  }
+  .health-table td {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    text-align: right !important;
+    padding: 3px 0 !important;
+  }
+  /* Name on its own line, then the two counts side by side rather than stacked —
+     four full-width rows per collection made the panel a very long scroll. */
+  .health-table td[data-label="Collection"] { flex: 1 0 100%; }
+  .health-table td[data-label="Live"],
+  .health-table td[data-label="Sheet rows"] { flex: 1 1 40%; }
+  .health-table td::before {
+    content: attr(data-label);
+    color: var(--text-muted);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    text-align: left;
+    flex: 0 0 auto;
+  }
+  /* The status sentence needs the full width, so it drops below its label. */
+  .health-table td[data-label="Status"] {
+    display: block;
+    flex: 1 0 100%;
+    text-align: left !important;
+    border-top: 1px dashed var(--border-color);
+    margin-top: 4px;
+    padding-top: 5px !important;
+  }
+  /* The status text says what it is; a "STATUS" caption above it is just noise
+     and another line of scrolling on a five-row panel. */
+  .health-table td[data-label="Status"]::before { content: none; }
   .header-title {
     font-size: var(--font-size-lg);
     line-height: 1.2;
@@ -2878,7 +2925,7 @@ const KEYRING_KEY = 'covervault.keyring.v1';
 const PROFILE_KEY = 'covervault.profile.v1';
 const DEVICE_KEY = 'covervault.device.v1';
 const PBKDF2_ITER = 210000;
-const APP_BUILD = '3.10.1';
+const APP_BUILD = '3.11.0';
 
 // Collections that participate in sync (record arrays, merged by id).
 const SYNC_COLLECTIONS = ['products', 'customers', 'suppliers', 'orders', 'activityLog'];
@@ -4553,11 +4600,24 @@ function formatDateInput(dateStr) {
   return new Date(dateStr).toISOString().split('T')[0];
 }
 
+/**
+ * Escape for both text and ATTRIBUTE contexts.
+ *
+ * textContent -> innerHTML escapes `&`, `<` and `>` but leaves quotes alone, so
+ * anything interpolated into `attr="${escapeHtml(x)}"` was truncated the moment
+ * the value held a double quote — a product called `Case 6"` is enough. Quotes
+ * are escaped explicitly here; in text they still render as a plain `"`.
+ *
+ * Single quotes are deliberately NOT escaped: the parser decodes entities in
+ * attribute values before the JS in an inline handler is parsed, so `&#39;`
+ * would come back as `'` and break `onclick="f('…')"` exactly as a raw quote
+ * does. Escaping it would buy nothing and change existing behaviour.
+ */
 function escapeHtml(str) {
   if (!str) return '';
   const d = document.createElement('div');
   d.textContent = str;
-  return d.innerHTML;
+  return d.innerHTML.replace(/"/g, '&quot;');
 }
 
 /* The colours phone cases actually come in. Tapping one fills in the name as
@@ -8859,13 +8919,131 @@ function _buildOrderProductDatalist() {
         _orderProductIdToDisplay[p.id]   = display;
         return `<option value="${escapeHtml(display)}">`;
     }).join('');
-    let dl = document.getElementById('orderProductDatalist');
-    if (!dl) {
-        dl = document.createElement('datalist');
-        dl.id = 'orderProductDatalist';
-        document.body.appendChild(dl);
-    }
-    dl.innerHTML = opts;
+    // The maps above are what the rest of the code uses. A native <datalist> is
+    // deliberately NOT built any more: on Android its suggestions are rendered
+    // by the keyboard as a horizontal strip above the keys, not as a dropdown in
+    // the page, which is unusable for picking one of hundreds of products.
+    // openOrderProductPicker() replaces it with a real in-page list.
+    void opts;
+}
+
+/* ----------------------- order item product picker -----------------------
+   A tap-to-open searchable sheet. Same control on desktop and mobile: the
+   search box is focused on open, so typing still narrows the list exactly as
+   the old datalist did — it just renders somewhere you can actually see it. */
+
+let _oiPickerRow = null;
+
+function openOrderProductPicker(btn) {
+  _oiPickerRow = btn.closest('tr');
+  if (!_oiPickerRow) return;
+  if (Object.keys(_orderProductIdToDisplay).length !== state.products.length) _buildOrderProductDatalist();
+
+  let ov = document.getElementById('oiPickerOverlay');
+  if (!ov) {
+    ov = document.createElement('div');
+    ov.id = 'oiPickerOverlay';
+    // Above the order modal, which is why this is not just another modal.
+    ov.style.cssText = 'position:fixed;inset:0;z-index:7000;background:rgba(0,0,0,0.45);'
+                     + 'display:flex;align-items:flex-end;justify-content:center';
+    ov.addEventListener('click', e => { if (e.target === ov) closeOrderProductPicker(); });
+    document.body.appendChild(ov);
+  }
+  ov.innerHTML = `
+    <div style="background:var(--bg-card);width:100%;max-width:560px;max-height:80vh;display:flex;
+                flex-direction:column;border-radius:16px 16px 0 0;box-shadow:var(--shadow-lg)">
+      <div style="padding:12px 14px 8px;border-bottom:1px solid var(--border-color)">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <strong style="flex:1;font-size:14px">Choose a product</strong>
+          <button class="btn btn-secondary btn-sm" onclick="closeOrderProductPicker()">Close</button>
+        </div>
+        <input class="form-control" id="oiPickerSearch" placeholder="Search name, brand or SKU"
+               autocomplete="off" oninput="_renderOrderProductPickerList(this.value)">
+      </div>
+      <div id="oiPickerList" style="overflow-y:auto;padding:6px 8px 12px"></div>
+    </div>`;
+  _renderOrderProductPickerList('');
+  setTimeout(() => document.getElementById('oiPickerSearch')?.focus(), 60);
+}
+
+function _renderOrderProductPickerList(q) {
+  const el = document.getElementById('oiPickerList');
+  if (!el) return;
+  const s = String(q || '').trim().toLowerCase();
+  const isSales = (document.getElementById('modalTitle')?.textContent || '').includes('Sales');
+  const list = (state.products || []).filter(p => {
+    if (!s) return true;
+    return [p.name, p.brand, p.model, p.sku, p.color]
+      .map(x => String(x || '').toLowerCase()).join(' ').includes(s);
+  }).slice(0, 300);
+
+  if (!list.length) {
+    el.innerHTML = '<p style="padding:16px;text-align:center;color:var(--text-muted);font-size:13px">No products match</p>';
+    return;
+  }
+  // The id goes in a data- attribute and is read by a delegated listener rather
+  // than interpolated into an inline onclick. Ids can be numbers or imported
+  // strings, and quoting one into an HTML attribute silently truncates the
+  // handler the moment the value contains a quote.
+  el.innerHTML = list.map(p => {
+    const price = Number(isSales ? p.salesPrice : p.purchasePrice) || 0;
+    const stock = Number(p.inStock) || 0;
+    return `<button type="button" data-pid="${escapeHtml(String(p.id))}"
+      style="display:block;width:100%;text-align:left;background:none;border:none;cursor:pointer;
+             padding:10px 8px;border-bottom:1px solid var(--border-color)">
+      <div style="font-size:13px;font-weight:600;color:var(--text-primary)">${escapeHtml(p.name || '(unnamed)')}</div>
+      <div style="font-size:11px;color:var(--text-secondary);margin-top:2px">
+        ${[p.brand, p.model, p.color].filter(Boolean).map(escapeHtml).join(' · ') || '&nbsp;'}
+        ${p.sku ? ' · <code>' + escapeHtml(p.sku) + '</code>' : ''}</div>
+      <div style="font-size:11px;margin-top:3px">
+        <span style="color:var(--brand-primary);font-weight:600">${formatCurrency(price)}</span>
+        <span style="color:${stock > 0 ? 'var(--text-muted)' : 'var(--color-danger)'};margin-left:8px">
+          ${stock > 0 ? stock + ' in stock' : 'out of stock'}</span></div>
+    </button>`;
+  }).join('');
+
+  if (!el._pickWired) {
+    el._pickWired = true;
+    el.addEventListener('click', e => {
+      const b = e.target.closest('button[data-pid]');
+      if (b) pickOrderProduct(b.dataset.pid);
+    });
+  }
+}
+
+function pickOrderProduct(id) {
+  const row = _oiPickerRow;
+  closeOrderProductPicker();
+  if (!row) return;
+  _applyOrderItemProduct(row, id);
+}
+
+function closeOrderProductPicker() {
+  document.getElementById('oiPickerOverlay')?.remove();
+  _oiPickerRow = null;
+}
+
+/** Bind a product to an order row: id, button label, and the default price. */
+function _applyOrderItemProduct(row, productId) {
+  const hiddenIdEl = row.querySelector('.oi-product-id');
+  const btn = row.querySelector('.oi-product-btn');
+  const product = (state.products || []).find(p => String(p.id) === String(productId));
+  if (!product) {
+    if (hiddenIdEl) hiddenIdEl.value = '';
+    if (btn) { btn.textContent = 'Choose product'; btn.style.color = 'var(--text-muted)'; }
+    recalcOrderTotals();
+    return;
+  }
+  if (hiddenIdEl) hiddenIdEl.value = product.id;
+  if (btn) {
+    btn.textContent = _orderProductIdToDisplay[product.id] || product.name || '(unnamed)';
+    btn.style.color = 'var(--text-primary)';
+  }
+  const isSales = (document.getElementById('modalTitle')?.textContent || '').includes('Sales');
+  const priceInput = row.querySelector('.oi-price');
+  const price = Number(isSales ? product.salesPrice : product.purchasePrice);
+  if (priceInput) priceInput.value = isFinite(price) ? price : 0;
+  recalcOrderTotals();
 }
 
 // Updated 27-05-2026: Added below function.
@@ -8894,10 +9072,8 @@ function onOrderItemProductInput(inputEl) {
 }
 
 function addOrderItemRow(item) {
-  // Updated 27-05-2026: Added check at start to ensure the shared datalist is present and up-to-date with current products.
-  // Ensure the shared datalist exists and is in sync with current products
-  if (!document.getElementById('orderProductDatalist') ||
-      Object.keys(_orderProductIdToDisplay).length !== state.products.length) {
+  // Keep the display maps in step with products added mid-session.
+  if (Object.keys(_orderProductIdToDisplay).length !== state.products.length) {
     _buildOrderProductDatalist();
   }
 
@@ -8912,14 +9088,12 @@ function addOrderItemRow(item) {
   // Updated 27-05-2026: Changed product input from free-text to a datalist-based searchable input, and added a hidden field to store the bound product ID.
   row.innerHTML = `
     <td>
-      <input class="form-control oi-product-search" type="text"
-             list="orderProductDatalist" autocomplete="off"
-             placeholder="Type to search product..."
-             value="${escapeHtml(preDisplay)}"
-             oninput="onOrderItemProductInput(this)"
-             onchange="onOrderItemProductInput(this)"
-             style="padding:6px;width:100%">
-      <input type="hidden" class="oi-product-id" value="${item?.productId || ''}">
+      <button type="button" class="form-control oi-product-btn" onclick="openOrderProductPicker(this)"
+              style="padding:6px;width:100%;text-align:left;cursor:pointer;overflow:hidden;
+                     text-overflow:ellipsis;white-space:nowrap;
+                     color:${preDisplay ? 'var(--text-primary)' : 'var(--text-muted)'}"
+      >${preDisplay ? escapeHtml(preDisplay) : 'Choose product'}</button>
+      <input type="hidden" class="oi-product-id" value="${escapeHtml(String(item?.productId ?? ''))}">
     </td>
     <td><input class="form-control oi-qty" type="number" min="1" value="${item?.quantity || 1}" oninput="recalcOrderTotals()" style="padding:6px"></td>
     <td><input class="form-control oi-price" type="number" step="0.01" min="0" value="${priceField}" oninput="recalcOrderTotals()" style="padding:6px"></td>
@@ -9039,7 +9213,12 @@ function saveOrder(type, editId) {
 
   itemRows.forEach(row => {
     const hiddenIdEl = row.querySelector('.oi-product-id');
-    const productId = parseInt(hiddenIdEl?.value);
+    // Ids are normally numeric, but imported data can carry string ids — the
+    // rest of the code compares them loosely for exactly that reason. parseInt
+    // alone turned those into NaN and rejected the row as "no product chosen".
+    const rawId = String(hiddenIdEl?.value || '').trim();
+    const numId = parseInt(rawId, 10);
+    const productId = String(numId) === rawId ? numId : rawId;
     const qty = parseFloat(row.querySelector('.oi-qty')?.value) || 0;
     const price = parseFloat(row.querySelector('.oi-price')?.value) || 0;
     const itemShip = perItemSP ? (parseFloat(row.querySelector('.oi-ship')?.value) || 0) : 0;
@@ -11246,18 +11425,20 @@ function collectionHealthHTML() {
     }
     const advice = parts.length ? parts.join('; ') : 'Healthy';
 
+    // data-label drives the stacked card layout on a phone, where four columns
+    // — one of them a sentence — squeeze into unreadable ribbons.
     return `<tr>
-      <td style="padding:4px 10px 4px 0">${escapeHtml(label)}</td>
-      <td style="padding:4px 10px;text-align:right">${n.toLocaleString('en-IN')}</td>
-      <td style="padding:4px 10px;text-align:right;color:var(--text-muted)">${
+      <td data-label="Collection" style="padding:4px 10px 4px 0;font-weight:600">${escapeHtml(label)}</td>
+      <td data-label="Live" style="padding:4px 10px;text-align:right">${n.toLocaleString('en-IN')}</td>
+      <td data-label="Sheet rows" style="padding:4px 10px;text-align:right;color:var(--text-muted)">${
         known ? (logged || 0).toLocaleString('en-IN') : '—'}</td>
-      <td style="padding:4px 0;font-size:12px;color:${tone}">${escapeHtml(advice)}</td>
+      <td data-label="Status" style="padding:4px 0;font-size:12px;color:${tone}">${escapeHtml(advice)}</td>
     </tr>`;
   };
 
   return `<div style="background:var(--bg-input);padding:12px 14px;border-radius:10px;margin-bottom:12px;overflow-x:auto">
     <p style="font-size:13px;margin:0 0 8px"><strong>Per-collection health</strong></p>
-    <table style="font-size:13px;border-collapse:collapse;min-width:100%">
+    <table class="health-table" style="font-size:13px;border-collapse:collapse;min-width:100%">
       <thead><tr style="color:var(--text-muted);font-size:11px;text-transform:uppercase">
         <th style="text-align:left;padding-bottom:4px">Collection</th>
         <th style="text-align:right;padding-bottom:4px">Live</th>
