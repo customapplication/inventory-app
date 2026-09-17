@@ -1385,6 +1385,42 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 .mcard-actions .btn-icon { width: 36px; height: 36px; }
 .mcard-actions .btn-icon svg { width: 17px; height: 17px; }
 
+/* ---------- In-app colour sheet (touch devices; see openColorSheet) ---------- */
+.cs-overlay {
+  position: fixed; inset: 0; z-index: 7100; background: rgba(0,0,0,0.45);
+  display: none; align-items: flex-end; justify-content: center;
+}
+.cs-sheet {
+  background: var(--bg-card); color: var(--text-primary);
+  width: 100%; max-width: 480px; max-height: 92vh; overflow-y: auto;
+  border-radius: 18px 18px 0 0; box-shadow: var(--shadow-lg);
+  padding: 16px 16px max(16px, env(safe-area-inset-bottom));
+  display: flex; flex-direction: column; gap: 14px;
+}
+.cs-head { display: flex; gap: 12px; align-items: flex-end; }
+.cs-preview { flex: none; width: 64px; height: 64px; border-radius: 12px; border: 1px solid var(--border-color); }
+.cs-hexwrap { flex: 1; min-width: 0; }
+.cs-sheet label { display: block; font-size: 11px; font-weight: 600; letter-spacing: .04em; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase; }
+.cs-hexwrap input { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 16px; text-transform: uppercase; }
+.cs-rgb { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.cs-rgb input { font-size: 16px; text-align: center; padding-left: 4px; padding-right: 4px; }
+.cs-range {
+  -webkit-appearance: none; appearance: none; width: 100%; height: 22px;
+  border-radius: 11px; border: 1px solid var(--border-color); margin: 0; padding: 0; outline: none;
+}
+.cs-range::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 28px; height: 28px; border-radius: 50%;
+  background: #fff; border: 3px solid #333; box-shadow: 0 1px 4px rgba(0,0,0,.35); cursor: pointer;
+}
+.cs-range::-moz-range-thumb {
+  width: 24px; height: 24px; border-radius: 50%;
+  background: #fff; border: 3px solid #333; box-shadow: 0 1px 4px rgba(0,0,0,.35); cursor: pointer;
+}
+.cs-presets { display: flex; flex-wrap: wrap; gap: 8px; }
+.cs-presets button { width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border-color); padding: 0; cursor: pointer; }
+.cs-foot { display: flex; gap: 10px; }
+.cs-foot .btn { flex: 1; justify-content: center; min-height: 44px; }
+
 /* --- Welcome Banner --- */
 .welcome-banner {
   background: linear-gradient(135deg, var(--brand-primary), var(--brand-primary-dark), var(--brand-accent));
@@ -1710,51 +1746,88 @@ textarea.form-control { resize: vertical; min-height: 80px; }
   #oShipping, #oPackaging, #oTax { min-width: 72px; }
 
   /* Per-collection health: four columns, one of them a sentence, is unreadable
-     at 375px. Stack each row into a labelled card instead. */
-  .health-table { display: block; }
+     at 375px. Each row becomes a small card: the collection name as a heading,
+     the two counts as side-by-side tiles (caption above number, so a number can
+     never run into the next caption), then the status line. */
+  .health-table, .health-table tbody { display: block; width: 100%; min-width: 0 !important; }
   .health-table thead { display: none; }
-  .health-table tbody { display: block; }
   .health-table tr {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 8px;
     background: var(--bg-card);
+    border: 1px solid var(--border-color);
     border-radius: 10px;
-    padding: 8px 10px;
+    padding: 10px 12px;
     margin-bottom: 8px;
   }
-  .health-table td {
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
-    text-align: right !important;
-    padding: 3px 0 !important;
-  }
-  /* Name on its own line, then the two counts side by side rather than stacked —
-     four full-width rows per collection made the panel a very long scroll. */
-  .health-table td[data-label="Collection"] { flex: 1 0 100%; }
+  .health-table td { display: block; padding: 0 !important; text-align: left !important; min-width: 0; }
+  .health-table td[data-label="Collection"] { grid-column: 1 / -1; font-size: 14px; }
   .health-table td[data-label="Live"],
-  .health-table td[data-label="Sheet rows"] { flex: 1 1 40%; }
-  .health-table td::before {
+  .health-table td[data-label="Sheet rows"] {
+    background: var(--bg-input);
+    border-radius: 8px;
+    padding: 6px 10px !important;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary) !important;
+    font-variant-numeric: tabular-nums;
+  }
+  .health-table td[data-label="Live"]::before,
+  .health-table td[data-label="Sheet rows"]::before {
     content: attr(data-label);
+    display: block;
     color: var(--text-muted);
-    font-size: 11px;
+    font-size: 10px;
+    font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.4px;
-    text-align: left;
-    flex: 0 0 auto;
+    margin-bottom: 1px;
   }
-  /* The status sentence needs the full width, so it drops below its label. */
+  /* The status sentence needs the full width; it says what it is, so no caption. */
   .health-table td[data-label="Status"] {
-    display: block;
-    flex: 1 0 100%;
-    text-align: left !important;
-    border-top: 1px dashed var(--border-color);
-    margin-top: 4px;
-    padding-top: 5px !important;
+    grid-column: 1 / -1;
+    font-size: 12px;
+    line-height: 1.45;
   }
-  /* The status text says what it is; a "STATUS" caption above it is just noise
-     and another line of scrolling on a five-row panel. */
-  .health-table td[data-label="Status"]::before { content: none; }
+
+  /* `.modal.modal-xl` (two classes) outranks the one-class full-screen rule
+     earlier, so XL dialogs kept a 95vw cap and a grey strip down the right. */
+  .modal.modal-lg, .modal.modal-xl { max-width: none; }
+
+  /* Bulk Product Builder. Four labelled steps are wider than a phone, so the
+     centred stepper overflowed at both ends and put a sideways scrollbar on
+     the whole form. Keep every dot, label only the current step. */
+  .bw-modal .bw-stepper { gap: 4px; padding: 4px 0 10px; }
+  .bw-modal .bw-step { gap: 6px !important; min-width: 0; }
+  .bw-modal .bw-step:not(.active) .bw-step-label { display: none; }
+  .bw-modal .bw-step.active .bw-step-label { white-space: nowrap; }
+  .bw-modal .bw-step-line { width: 14px !important; margin: 0 2px !important; }
+  .bw-modal #bwBody { margin-top: 12px !important; }
+  /* Step 1: prices side by side; everything else full width. */
+  .bw-modal .form-grid.bw-design { grid-template-columns: 1fr 1fr !important; gap: 12px 10px; }
+  .bw-modal .bw-design > .form-group:not(.bw-half) { grid-column: 1 / -1; }
+  .bw-modal .bw-magsafe { margin-top: 0 !important; }
+  /* Toolbars wrap; a search box gets its own full-width line. */
+  .bw-modal .bw-toolbar { flex-wrap: wrap; gap: 8px !important; }
+  .bw-modal .bw-toolbar #bwBrandFilter { flex: 1 0 100%; max-width: none !important; }
+  .bw-modal .bw-toolbar .btn { flex: 1 1 auto; justify-content: center; }
+  .bw-modal .bw-colormode { flex-direction: column; align-items: flex-start !important; gap: 8px !important; }
+  .bw-modal .bw-bulkset > strong { flex: 1 0 100%; }
+  /* Each value stays on the same line as its own Apply button. */
+  .bw-modal .bw-pair { display: flex !important; flex: 1 0 100%; }
+  .bw-modal .bw-pair input, .bw-modal .bw-pair select { flex: 1 1 0; min-width: 0; width: auto !important; min-height: 36px; }
+  .bw-modal .bw-pair .btn { flex: 0 0 48%; }
+  .bw-modal .bw-pair-custom { flex-wrap: wrap; }
+  .bw-modal .bw-pair-custom select { flex: 1 0 100%; }
+  .bw-modal .bw-shown { flex: 1 0 100%; margin-left: 0 !important; }
+  .bw-modal .bw-customcolor { flex-wrap: wrap; }
+  .bw-modal .bw-customcolor .form-control { flex: 1 1 160px !important; min-width: 0; }
+  /* Running total: counts on one line, the estimate on its own. */
+  .bw-modal .bw-counter { gap: 6px 14px !important; padding: 10px 12px !important; }
+  .bw-modal .bw-estimate { flex: 1 0 100%; margin-left: 0 !important; padding-top: 6px; border-top: 1px solid var(--border-color); }
+  .bw-modal .modal-footer { gap: 8px; }
+  .bw-modal .modal-footer .btn { flex: 1 1 0; justify-content: center; min-height: 44px; padding-left: 8px; padding-right: 8px; }
   .header-title {
     font-size: var(--font-size-lg);
     line-height: 1.2;
@@ -2027,7 +2100,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
           <span class="sync-indicator off" id="syncIndicator" onclick="onSyncIndicatorClick()">
             <span class="sync-dot"></span><span class="sync-text">Sync off</span>
           </span>
-          <button class="btn-icon" onclick="exportAllData()" title="Export All Data">
+          <button class="btn-icon" id="exportAllBtn" onclick="exportAllData()" title="Export All Data">
             <svg><use href="#icon-export"/></svg>
           </button>
           <button class="btn-icon" onclick="navigateTo('dashboard')" title="Home / Dashboard" style="color:var(--brand-primary)">
@@ -2131,7 +2204,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
                     <svg><use href="#icon-copy"/></svg> Bulk Create
                   </button>
                 </div>
-                <button class="btn btn-secondary" onclick="showExportMenu('products',this)">
+                <button class="btn btn-secondary" id="productsExportBtn" onclick="showExportMenu('products',this)">
                   <svg><use href="#icon-export"/></svg> Export
                 </button>
                 <button class="btn btn-secondary" onclick="showBulkPrintMenu(this)" style="position:relative">
@@ -2167,7 +2240,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
                 <button class="btn btn-primary" onclick="openCustomerModal()">
                   <svg><use href="#icon-add"/></svg> Add Customer
                 </button>
-                <button class="btn btn-secondary" onclick="showExportMenu('customers',this)">
+                <button class="btn btn-secondary" id="customersExportBtn" onclick="showExportMenu('customers',this)">
                   <svg><use href="#icon-export"/></svg> Export
                 </button>
               </div>
@@ -2199,7 +2272,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
                 <button class="btn btn-primary" onclick="openSupplierModal()">
                   <svg><use href="#icon-add"/></svg> Add Supplier
                 </button>
-                <button class="btn btn-secondary" onclick="showExportMenu('suppliers',this)">
+                <button class="btn btn-secondary" id="suppliersExportBtn" onclick="showExportMenu('suppliers',this)">
                   <svg><use href="#icon-export"/></svg> Export
                 </button>
               </div>
@@ -2234,7 +2307,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
                 <button class="btn btn-primary" onclick="openOrderModal('sales')">
                   <svg><use href="#icon-add"/></svg> New Sale
                 </button>
-                <button class="btn btn-secondary" onclick="showExportMenu('sales',this)">
+                <button class="btn btn-secondary" id="salesExportBtn" onclick="showExportMenu('sales',this)">
                   <svg><use href="#icon-export"/></svg> Export
                 </button>
               </div>
@@ -2269,7 +2342,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
                 <button class="btn btn-primary" onclick="openOrderModal('purchases')">
                   <svg><use href="#icon-add"/></svg> New Purchase
                 </button>
-                <button class="btn btn-secondary" onclick="showExportMenu('purchases',this)">
+                <button class="btn btn-secondary" id="purchasesExportBtn" onclick="showExportMenu('purchases',this)">
                   <svg><use href="#icon-export"/></svg> Export
                 </button>
               </div>
@@ -2475,11 +2548,11 @@ const DEFAULT_SETTINGS = {
       id: 1, name: 'Manager', description: 'Full access except security and user management',
       permissions: {
         dashboard:{view:true,viewWelcomeBanner:true,viewDashFilters:true,viewSalesKpi:true,viewPurchaseKpi:true,viewStockAlerts:true,viewRecentOrders:true,viewMonthlyChart:true,viewTopProducts:true,viewCategoryChart:true,viewRevenueByCategoryChart:true,viewLowStockAlertsCard:true,viewGrossProfitKpi:true,viewInventoryValueKpi:true,viewTotalOrdersKpi:true,viewPendingKpi:true,viewUnpaidKpi:true,viewCancelledKpi:true,viewGrossSalesKpi:true,viewNetSalesKpi:true},
-        products:{view:true,add:true,edit:true,delete:true,viewPrices:true},
-        customers:{view:true,add:true,edit:true,delete:true,viewContact:true},
-        suppliers:{view:true,add:true,edit:true,delete:true,viewContact:true},
-        sales:{view:true,add:true,edit:true,delete:true,viewValues:true},
-        purchases:{view:true,add:true,edit:true,delete:true,viewValues:true},
+        products:{view:true,add:true,edit:true,delete:true,viewPrices:true,export:true},
+        customers:{view:true,add:true,edit:true,delete:true,viewContact:true,export:true},
+        suppliers:{view:true,add:true,edit:true,delete:true,viewContact:true,export:true},
+        sales:{view:true,add:true,edit:true,delete:true,viewValues:true,export:true},
+        purchases:{view:true,add:true,edit:true,delete:true,viewValues:true,export:true},
         reports:{view:true},
         whatsapp:{view:true,edit:true},
         // Updated 24-05-2026: Added activityLogsConfig and usersCreateAdmin and value updates.
@@ -2490,11 +2563,11 @@ const DEFAULT_SETTINGS = {
       id: 2, name: 'Sales Staff', description: 'Sales orders, customers, and product viewing',
       permissions: {
         dashboard:{view:true,viewWelcomeBanner:true,viewDashFilters:true,viewSalesKpi:true,viewPurchaseKpi:false,viewStockAlerts:true,viewRecentOrders:true,viewMonthlyChart:true,viewTopProducts:true,viewCategoryChart:true,viewRevenueByCategoryChart:true,viewLowStockAlertsCard:true,viewGrossProfitKpi:false,viewInventoryValueKpi:false,viewTotalOrdersKpi:true,viewPendingKpi:true,viewUnpaidKpi:true,viewCancelledKpi:false,viewGrossSalesKpi:true,viewNetSalesKpi:true},
-        products:{view:true,add:false,edit:false,delete:false,viewPrices:true},
-        customers:{view:true,add:true,edit:true,delete:false,viewContact:true},
-        suppliers:{view:false,add:false,edit:false,delete:false,viewContact:false},
-        sales:{view:true,add:true,edit:true,delete:false,viewValues:true},
-        purchases:{view:false,add:false,edit:false,delete:false,viewValues:false},
+        products:{view:true,add:false,edit:false,delete:false,viewPrices:true,export:false},
+        customers:{view:true,add:true,edit:true,delete:false,viewContact:true,export:false},
+        suppliers:{view:false,add:false,edit:false,delete:false,viewContact:false,export:false},
+        sales:{view:true,add:true,edit:true,delete:false,viewValues:true,export:false},
+        purchases:{view:false,add:false,edit:false,delete:false,viewValues:false,export:false},
         reports:{view:true},
         // Sales Staff broadcast the stock list but do not rewrite the template.
         whatsapp:{view:true,edit:false},
@@ -2506,11 +2579,11 @@ const DEFAULT_SETTINGS = {
       id: 3, name: 'Warehouse Staff', description: 'Product management and stock updates',
       permissions: {
         dashboard:{view:true,viewWelcomeBanner:false,viewDashFilters:false,viewSalesKpi:false,viewPurchaseKpi:false,viewStockAlerts:true,viewRecentOrders:false,viewMonthlyChart:false,viewTopProducts:false,viewCategoryChart:true,viewRevenueByCategoryChart:false,viewLowStockAlertsCard:true,viewGrossProfitKpi:false,viewInventoryValueKpi:true,viewTotalOrdersKpi:false,viewPendingKpi:false,viewUnpaidKpi:false,viewCancelledKpi:false,viewGrossSalesKpi:false,viewNetSalesKpi:false},
-        products:{view:true,add:true,edit:true,delete:false,viewPrices:false},
-        customers:{view:false,add:false,edit:false,delete:false,viewContact:false},
-        suppliers:{view:true,add:false,edit:false,delete:false,viewContact:true},
-        sales:{view:false,add:false,edit:false,delete:false,viewValues:false},
-        purchases:{view:true,add:true,edit:false,delete:false,viewValues:false},
+        products:{view:true,add:true,edit:true,delete:false,viewPrices:false,export:false},
+        customers:{view:false,add:false,edit:false,delete:false,viewContact:false,export:false},
+        suppliers:{view:true,add:false,edit:false,delete:false,viewContact:true,export:false},
+        sales:{view:false,add:false,edit:false,delete:false,viewValues:false,export:false},
+        purchases:{view:true,add:true,edit:false,delete:false,viewValues:false,export:false},
         reports:{view:false},
         // Warehouse Staff work stock, not customer-facing messaging.
         whatsapp:{view:false,edit:false},
@@ -2522,11 +2595,11 @@ const DEFAULT_SETTINGS = {
       id: 4, name: 'Viewer', description: 'Read-only access to all modules',
       permissions: {
         dashboard:{view:true,viewWelcomeBanner:true,viewDashFilters:true,viewSalesKpi:true,viewPurchaseKpi:true,viewStockAlerts:true,viewRecentOrders:true,viewMonthlyChart:true,viewTopProducts:true,viewCategoryChart:true,viewRevenueByCategoryChart:true,viewLowStockAlertsCard:true,viewGrossProfitKpi:true,viewInventoryValueKpi:true,viewTotalOrdersKpi:true,viewPendingKpi:true,viewUnpaidKpi:true,viewCancelledKpi:true,viewGrossSalesKpi:true,viewNetSalesKpi:true},
-        products:{view:true,add:false,edit:false,delete:false,viewPrices:true},
-        customers:{view:true,add:false,edit:false,delete:false,viewContact:true},
-        suppliers:{view:true,add:false,edit:false,delete:false,viewContact:true},
-        sales:{view:true,add:false,edit:false,delete:false,viewValues:true},
-        purchases:{view:true,add:false,edit:false,delete:false,viewValues:true},
+        products:{view:true,add:false,edit:false,delete:false,viewPrices:true,export:false},
+        customers:{view:true,add:false,edit:false,delete:false,viewContact:true,export:false},
+        suppliers:{view:true,add:false,edit:false,delete:false,viewContact:true,export:false},
+        sales:{view:true,add:false,edit:false,delete:false,viewValues:true,export:false},
+        purchases:{view:true,add:false,edit:false,delete:false,viewValues:true,export:false},
         reports:{view:true},
         // Read-only role: may build a message, may not change the shared wording.
         whatsapp:{view:true,edit:false},
@@ -2925,7 +2998,7 @@ const KEYRING_KEY = 'covervault.keyring.v1';
 const PROFILE_KEY = 'covervault.profile.v1';
 const DEVICE_KEY = 'covervault.device.v1';
 const PBKDF2_ITER = 210000;
-const APP_BUILD = '3.11.0';
+const APP_BUILD = '3.12.1';
 
 // Collections that participate in sync (record arrays, merged by id).
 const SYNC_COLLECTIONS = ['products', 'customers', 'suppliers', 'orders', 'activityLog'];
@@ -4671,6 +4744,157 @@ function _markColorSwatch(hex) {
   });
 }
 
+// ------------------------------------------------------------
+// In-app colour sheet (touch devices)
+// ------------------------------------------------------------
+// Android Chrome's native <input type="color"> dialog offers only Hue /
+// Saturation / Value sliders — no HEX, no RGB — and a page cannot add fields to
+// it. On a coarse pointer every colour input therefore opens this sheet
+// instead; it writes the value back and fires input + change, so each input's
+// existing onchange handler runs exactly as it would after the native picker.
+// Desktop keeps the native picker, which already has HEX and RGB.
+// Opt out per input with data-native-picker.
+
+const _cs = { input: null, h: 0, s: 0, v: 0 };
+
+function _csHexToRgb(hex) {
+  let h = String(hex || '').trim().replace(/^#/, '');
+  if (/^[0-9a-f]{3}$/i.test(h)) h = h.split('').map(c => c + c).join('');
+  if (!/^[0-9a-f]{6}$/i.test(h)) return null;
+  return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16));
+}
+function _csRgbToHex(r, g, b) {
+  return '#' + [r, g, b].map(n => Math.max(0, Math.min(255, Math.round(n || 0))).toString(16).padStart(2, '0')).join('').toUpperCase();
+}
+function _csRgbToHsv(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+  let h = 0;
+  if (d) {
+    if (max === r) h = ((g - b) / d) % 6;
+    else if (max === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+    h = (h * 60 + 360) % 360;
+  }
+  return [h, max ? d / max * 100 : 0, max * 100];
+}
+function _csHsvToRgb(h, s, v) {
+  s /= 100; v /= 100;
+  const c = v * s, x = c * (1 - Math.abs((h / 60) % 2 - 1)), m = v - c;
+  const [r, g, b] = h < 60 ? [c, x, 0] : h < 120 ? [x, c, 0] : h < 180 ? [0, c, x]
+                  : h < 240 ? [0, x, c] : h < 300 ? [x, 0, c] : [c, 0, x];
+  return [(r + m) * 255, (g + m) * 255, (b + m) * 255].map(Math.round);
+}
+
+function openColorSheet(input) {
+  _cs.input = input;
+  const rgb = _csHexToRgb(input.value) || [0, 0, 0];
+  [_cs.h, _cs.s, _cs.v] = _csRgbToHsv(...rgb);
+
+  let ov = document.getElementById('csOverlay');
+  if (!ov) {
+    ov = document.createElement('div');
+    ov.id = 'csOverlay';
+    ov.className = 'cs-overlay';
+    ov.addEventListener('click', e => { if (e.target === ov) closeColorSheet(); });
+    document.body.appendChild(ov);
+  }
+  const slider = (id, label, max) => `
+    <div class="cs-row">
+      <label for="${id}">${label}</label>
+      <input type="range" id="${id}" min="0" max="${max}" step="any" class="cs-range" oninput="_csFromHsv()">
+    </div>`;
+  ov.innerHTML = `
+    <div class="cs-sheet" role="dialog" aria-modal="true" aria-label="Choose colour">
+      <div class="cs-head">
+        <div class="cs-preview" id="csPreview"></div>
+        <div class="cs-hexwrap">
+          <label for="csHex">HEX</label>
+          <input class="form-control" id="csHex" maxlength="7" autocomplete="off" autocapitalize="characters"
+                 spellcheck="false" oninput="_csFromHex(this.value)">
+        </div>
+      </div>
+      <div class="cs-rgb">
+        ${['R', 'G', 'B'].map((c, i) => `
+          <div><label for="csRgb${i}">${c}</label>
+            <input class="form-control" id="csRgb${i}" type="number" inputmode="numeric" min="0" max="255"
+                   oninput="_csFromRgb()"></div>`).join('')}
+      </div>
+      ${slider('csH', 'Hue', 359)}
+      ${slider('csS', 'Saturation', 100)}
+      ${slider('csV', 'Brightness', 100)}
+      <div class="cs-presets">
+        ${COLOR_PRESETS.map(c => `<button type="button" title="${escapeHtml(c.name)}" style="background:${c.hex}"
+            onclick="_csFromHex('${c.hex}', true)"></button>`).join('')}
+      </div>
+      <div class="cs-foot">
+        <button type="button" class="btn btn-secondary" onclick="closeColorSheet()">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="applyColorSheet()">Set colour</button>
+      </div>
+    </div>`;
+  ov.style.display = 'flex';
+  _csPaint();
+}
+
+function closeColorSheet() {
+  const ov = document.getElementById('csOverlay');
+  if (ov) ov.style.display = 'none';
+  _cs.input = null;
+}
+
+function applyColorSheet() {
+  const input = _cs.input;
+  if (input) {
+    input.value = _csRgbToHex(..._csHsvToRgb(_cs.h, _cs.s, _cs.v)).toLowerCase();
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+  closeColorSheet();
+}
+
+function _csFromHsv() {
+  _cs.h = +document.getElementById('csH').value;
+  _cs.s = +document.getElementById('csS').value;
+  _cs.v = +document.getElementById('csV').value;
+  _csPaint();
+}
+function _csFromRgb() {
+  const rgb = [0, 1, 2].map(i => Math.max(0, Math.min(255, +document.getElementById('csRgb' + i).value || 0)));
+  [_cs.h, _cs.s, _cs.v] = _csRgbToHsv(...rgb);
+  _csPaint('rgb');
+}
+function _csFromHex(val, force) {
+  const rgb = _csHexToRgb(val);
+  if (!rgb) return;                       // half-typed hex: wait for the rest
+  if (!force && String(val).replace('#', '').length === 3) return;
+  [_cs.h, _cs.s, _cs.v] = _csRgbToHsv(...rgb);
+  _csPaint(force ? '' : 'hex');
+}
+
+/** Redraw every control from _cs, skipping the one the user is typing into. */
+function _csPaint(skip) {
+  const rgb = _csHsvToRgb(_cs.h, _cs.s, _cs.v);
+  const hex = _csRgbToHex(...rgb);
+  document.getElementById('csPreview').style.background = hex;
+  if (skip !== 'hex') document.getElementById('csHex').value = hex;
+  if (skip !== 'rgb') rgb.forEach((n, i) => { document.getElementById('csRgb' + i).value = n; });
+  const H = document.getElementById('csH'), S = document.getElementById('csS'), V = document.getElementById('csV');
+  H.value = _cs.h; S.value = _cs.s; V.value = _cs.v;
+  const full = _csRgbToHex(..._csHsvToRgb(_cs.h, _cs.s, 100));
+  H.style.background = 'linear-gradient(to right,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00)';
+  S.style.background = `linear-gradient(to right,${_csRgbToHex(..._csHsvToRgb(0, 0, _cs.v))},${_csRgbToHex(..._csHsvToRgb(_cs.h, 100, _cs.v))})`;
+  V.style.background = `linear-gradient(to right,#000,${full})`;
+}
+
+// Capture phase, so the native dialog is cancelled before it opens.
+document.addEventListener('click', e => {
+  const input = e.target.closest && e.target.closest('input[type="color"]');
+  if (!input || input.disabled || input.hasAttribute('data-native-picker')) return;
+  if (!window.matchMedia('(pointer: coarse)').matches) return;
+  e.preventDefault();
+  openColorSheet(input);
+}, true);
+
 function generateOrderNumber(type) {
   const cfg = state.settings.orderConfig || {};
   const prefix = type === 'sales' ? (cfg.salesPrefix || 'SO') : (cfg.purchasePrefix || 'PO');
@@ -6108,7 +6332,7 @@ function renderProducts() {
       };
       _prodCustomCols.forEach(c => { cellMap[c.key] = _customCellHtml(c, p.customFields?.[c.key]); });
       html += `<tr data-id="${p.id}">
-<td>${state._showBulkCheckboxes ? `<input type="checkbox" class="bulk-print-cb" value="${p.id}" ${_bulkPrintSelection.has(p.id) ? 'checked' : ''} onchange="toggleBulkPrintItem(${p.id}, this.checked)" style="width:16px;height:16px;accent-color:var(--brand-primary)">` : (start + i + 1)}</td>
+        <td>${state._showBulkCheckboxes ? `<input type="checkbox" class="bulk-print-cb" value="${p.id}" ${_bulkPrintSelection.has(p.id) ? 'checked' : ''} onchange="toggleBulkPrintItem(${p.id}, this.checked)" style="width:16px;height:16px;accent-color:var(--brand-primary)">` : (start + i + 1)}</td>
         <td><div class="actions-cell">
           ${canAccess('products','add') ? `<button class="btn-icon" onclick="duplicateProduct(${p.id})" title="Duplicate"><svg style="fill:var(--color-info)"><use href="#icon-copy"/></svg></button>` : ''}
           ${canAccess('products','edit') ? `<button class="btn-icon" onclick="openProductModal(${p.id})" title="Edit"><svg style="fill:var(--brand-primary)"><use href="#icon-edit"/></svg></button>` : ''}
@@ -6730,6 +6954,8 @@ function _renderBulkWizard() {
   const html = `<div id="bwRoot"><div id="bwStepper">${stepHtml}</div><div id="bwBody" style="margin-top:14px">${body}</div><div id="bwCounter">${counter}</div></div>`;
   const footer = `<div id="bwFooter" style="display:contents">${_renderBulkWizardFooter()}</div>`;
   openModal('\ud83d\udce6 Bulk Product Builder', html, footer, 'xl');
+  // Scopes the phone layout in the mobile CSS block; openModal() resets it.
+  document.getElementById('modalDialog')?.classList.add('bw-modal');
 }
 
 // Partial re-render that preserves scroll positions of inner scrollable containers.
@@ -6770,17 +6996,17 @@ function _refreshBulkWizardBody() {
 }
 
 function _renderBulkWizardStepper(currentStep) {
-  return `<div style="display:flex;align-items:center;justify-content:center;gap:6px;padding:10px 0;border-bottom:1px solid var(--border-color)">
+  return `<div class="bw-stepper" style="display:flex;align-items:center;justify-content:center;gap:6px;padding:10px 0;border-bottom:1px solid var(--border-color)">
     ${BULK_WIZARD_STEPS.map((s, i) => {
       const active = s.id === currentStep;
       const done = s.id < currentStep;
       const color = active ? 'var(--brand-primary)' : (done ? 'var(--color-success)' : 'var(--text-muted)');
       const bg = active ? 'var(--brand-primary)' : (done ? 'var(--color-success)' : 'var(--bg-input)');
       const fg = (active || done) ? 'white' : 'var(--text-muted)';
-      return `<div style="display:flex;align-items:center;gap:6px">
-        <span style="width:26px;height:26px;border-radius:50%;background:${bg};color:${fg};font-weight:600;font-size:12px;display:inline-flex;align-items:center;justify-content:center">${done ? '\u2713' : s.id}</span>
-        <span style="color:${color};font-weight:${active ? '600' : '400'};font-size:13px">${s.label}</span>
-        ${i < BULK_WIZARD_STEPS.length - 1 ? `<span style="width:22px;height:1px;background:var(--border-color);margin:0 4px"></span>` : ''}
+      return `<div class="bw-step${active ? ' active' : ''}" style="display:flex;align-items:center;gap:6px">
+        <span class="bw-step-dot" style="width:26px;height:26px;border-radius:50%;background:${bg};color:${fg};font-weight:600;font-size:12px;display:inline-flex;align-items:center;justify-content:center">${done ? '\u2713' : s.id}</span>
+        <span class="bw-step-label" style="color:${color};font-weight:${active ? '600' : '400'};font-size:13px">${s.label}</span>
+        ${i < BULK_WIZARD_STEPS.length - 1 ? `<span class="bw-step-line" style="width:22px;height:1px;background:var(--border-color);margin:0 4px"></span>` : ''}
       </div>`;
     }).join('')}
   </div>`;
@@ -6795,11 +7021,11 @@ function _renderBulkWizardCounter() {
   const colorLabel = isPerModel
     ? `<strong>${counts.distinctColors}</strong> distinct color${counts.distinctColors===1?'':'s'} \u00b7 <strong>${counts.totalColorSlots}</strong> slot${counts.totalColorSlots===1?'':'s'} across all models`
     : `<strong>${counts.colors}</strong> color${counts.colors===1?'':'s'} (same for all models)`;
-  return `<div style="margin-top:14px;padding:10px 14px;background:var(--bg-input);border-radius:6px;display:flex;flex-wrap:wrap;gap:14px;align-items:center;font-size:13px">
+  return `<div class="bw-counter" style="margin-top:14px;padding:10px 14px;background:var(--bg-input);border-radius:6px;display:flex;flex-wrap:wrap;gap:14px;align-items:center;font-size:13px">
     <span><strong>${counts.brands}</strong> brand${counts.brands===1?'':'s'}</span>
     <span><strong>${counts.models}</strong> model${counts.models===1?'':'s'}</span>
     <span>${colorLabel}</span>
-    <span style="margin-left:auto">Estimated products: <strong style="color:var(--brand-primary);font-size:15px">${counts.estimate.toLocaleString()}</strong></span>
+    <span class="bw-estimate" style="margin-left:auto">Estimated products: <strong style="color:var(--brand-primary);font-size:15px">${counts.estimate.toLocaleString()}</strong></span>
     ${warn ? `<span style="flex:1 0 100%;margin-top:6px">${warn}</span>` : ''}
   </div>`;
 }
@@ -7065,7 +7291,7 @@ function _renderBulkStep1() {
   const d = st.design;
   const cfg = state.settings.dropdownConfig || {};
   return `
-    <div class="form-grid">
+    <div class="form-grid bw-design">
       <div class="form-group full-width">
         <label class="form-label">Product Name Pattern <span class="required">*</span></label>
         <input class="form-control" id="bwNamePattern" value="${escapeHtml(d.namePattern)}" placeholder="{BRAND} {MODEL} {COLOR} Case">
@@ -7079,15 +7305,15 @@ function _renderBulkStep1() {
         </select>
       </div>
       <div class="form-group">
-        <label class="form-check" style="margin-top:24px">
+        <label class="form-check bw-magsafe" style="margin-top:24px">
           <input type="checkbox" id="bwMagSafe" ${d.isMagSafe ? 'checked' : ''}> MagSafe Compatible (apply to all)
         </label>
       </div>
-      <div class="form-group">
+      <div class="form-group bw-half">
         <label class="form-label">Default Cost Price <span class="required">*</span></label>
         <input class="form-control" id="bwBuyPrice" type="number" min="0" step="0.01" value="${d.basePurchasePrice}">
       </div>
-      <div class="form-group">
+      <div class="form-group bw-half">
         <label class="form-label">Default Sales Price <span class="required">*</span></label>
         <input class="form-control" id="bwSellPrice" type="number" min="0" step="0.01" value="${d.baseSalesPrice}">
       </div>
@@ -7153,7 +7379,7 @@ function _renderBulkStep2() {
     return `<div style="padding:40px;text-align:center;color:var(--text-muted)">No brands available. Settings \u2192 Dropdowns \u2192 Load Bundled.</div>`;
   }
 
-  let html = `<div style="display:flex;gap:12px;align-items:center;margin-bottom:10px">
+  let html = `<div class="bw-toolbar" style="display:flex;gap:12px;align-items:center;margin-bottom:10px">
     <input class="form-control" id="bwBrandFilter" placeholder="Search brand or model..." value="${escapeHtml(st.selection.brandFilter)}" style="max-width:320px;font-size:13px;padding:6px 10px" oninput="_onBulkBrandFilter(this.value)">
     <button class="btn btn-sm btn-secondary" onclick="_bulkExpandAll(true)">Expand all</button>
     <button class="btn btn-sm btn-secondary" onclick="_bulkExpandAll(false)">Collapse all</button>
@@ -7265,7 +7491,7 @@ function _renderBulkStep3() {
   const mode = st.colors.mode;
 
   // Header with mode toggle
-  let html = `<div style="display:flex;gap:16px;align-items:center;margin-bottom:14px;padding:10px 14px;background:var(--bg-input);border-radius:6px">
+  let html = `<div class="bw-toolbar bw-colormode" style="display:flex;gap:16px;align-items:center;margin-bottom:14px;padding:10px 14px;background:var(--bg-input);border-radius:6px">
     <strong style="font-size:13px">Color mode:</strong>
     <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:13px"><input type="radio" name="bwColorMode" value="global" ${mode==='global'?'checked':''} onchange="_bulkSetColorMode('global')"> Same colors for all models (global)</label>
     <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:13px"><input type="radio" name="bwColorMode" value="perModel" ${mode==='perModel'?'checked':''} onchange="_bulkSetColorMode('perModel')"> Different colors per model</label>
@@ -7335,7 +7561,7 @@ function _renderColorBucketUI(mode, modelKey, colors, palette) {
     html += `</div>`;
   }
   // Custom add
-  html += `<div style="display:flex;gap:6px;align-items:center">
+  html += `<div class="bw-customcolor" style="display:flex;gap:6px;align-items:center">
     <input type="color" id="bwColorHex${idSuffix}" value="#000000" style="width:40px;height:34px;border:1px solid var(--border-color);border-radius:6px;cursor:pointer;padding:2px">
     <input class="form-control" id="bwColorName${idSuffix}" placeholder="Custom color name (e.g. Sunset Orange)" style="flex:1;font-size:12px;padding:6px 10px" onkeydown="if(event.key==='Enter')_bulkAddCustomColor('${mode}', ${modelKey ? `'${escapeHtml(modelKey).replace(/'/g, "\\'")}'` : 'null'}, '${idSuffix}')">
     <button class="btn btn-sm btn-primary" onclick="_bulkAddCustomColor('${mode}', ${modelKey ? `'${escapeHtml(modelKey).replace(/'/g, "\\'")}'` : 'null'}, '${idSuffix}')"><svg><use href="#icon-add"/></svg> Add</button>
@@ -7484,28 +7710,28 @@ function _renderBulkStep4() {
   const previewRows = rows.slice(0, previewLimit);
 
   // Bulk-set toolbar: only show controls for columns that are actually visible
-  let html = `<div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
+  let html = `<div class="bw-toolbar bw-bulkset" style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
     <strong style="font-size:13px">Bulk-set values:</strong>`;
   if (cols.inStock) html += `
-    <input type="number" id="bwBulkQty" placeholder="${escapeHtml(cols.labels.inStock)}" min="0" value="${st.design.baseStock}" style="width:80px;font-size:12px;padding:5px 8px;border:1px solid var(--border-color);border-radius:6px">
-    <button class="btn btn-sm btn-secondary" onclick="_bulkApplyField('qty')">Apply ${escapeHtml(cols.labels.inStock)}</button>`;
+    <span class="bw-pair" style="display:inline-flex;gap:8px;align-items:center"><input type="number" id="bwBulkQty" placeholder="${escapeHtml(cols.labels.inStock)}" min="0" value="${st.design.baseStock}" style="width:80px;font-size:12px;padding:5px 8px;border:1px solid var(--border-color);border-radius:6px">
+    <button class="btn btn-sm btn-secondary" onclick="_bulkApplyField('qty')">Apply ${escapeHtml(cols.labels.inStock)}</button></span>`;
   if (cols.purchasePrice) html += `
-    <input type="number" id="bwBulkBuy" placeholder="${escapeHtml(cols.labels.purchasePrice)}" min="0" step="0.01" value="${st.design.basePurchasePrice}" style="width:90px;font-size:12px;padding:5px 8px;border:1px solid var(--border-color);border-radius:6px">
-    <button class="btn btn-sm btn-secondary" onclick="_bulkApplyField('purchasePrice')">Apply ${escapeHtml(cols.labels.purchasePrice)}</button>`;
+    <span class="bw-pair" style="display:inline-flex;gap:8px;align-items:center"><input type="number" id="bwBulkBuy" placeholder="${escapeHtml(cols.labels.purchasePrice)}" min="0" step="0.01" value="${st.design.basePurchasePrice}" style="width:90px;font-size:12px;padding:5px 8px;border:1px solid var(--border-color);border-radius:6px">
+    <button class="btn btn-sm btn-secondary" onclick="_bulkApplyField('purchasePrice')">Apply ${escapeHtml(cols.labels.purchasePrice)}</button></span>`;
   if (cols.salesPrice) html += `
-    <input type="number" id="bwBulkSell" placeholder="${escapeHtml(cols.labels.salesPrice)}" min="0" step="0.01" value="${st.design.baseSalesPrice}" style="width:90px;font-size:12px;padding:5px 8px;border:1px solid var(--border-color);border-radius:6px">
-    <button class="btn btn-sm btn-secondary" onclick="_bulkApplyField('salesPrice')">Apply ${escapeHtml(cols.labels.salesPrice)}</button>`;
+    <span class="bw-pair" style="display:inline-flex;gap:8px;align-items:center"><input type="number" id="bwBulkSell" placeholder="${escapeHtml(cols.labels.salesPrice)}" min="0" step="0.01" value="${st.design.baseSalesPrice}" style="width:90px;font-size:12px;padding:5px 8px;border:1px solid var(--border-color);border-radius:6px">
+    <button class="btn btn-sm btn-secondary" onclick="_bulkApplyField('salesPrice')">Apply ${escapeHtml(cols.labels.salesPrice)}</button></span>`;
   // Custom field bulk-set: dropdown + value + apply
   if (cols.customCols.length) {
     html += `
-    <select id="bwBulkCustomKey" style="font-size:12px;padding:5px 8px;border:1px solid var(--border-color);border-radius:6px">
+    <span class="bw-pair bw-pair-custom" style="display:inline-flex;gap:8px;align-items:center"><select id="bwBulkCustomKey" style="font-size:12px;padding:5px 8px;border:1px solid var(--border-color);border-radius:6px">
       ${cols.customCols.map(c => `<option value="${escapeHtml(c.key)}">${escapeHtml(c.label)}</option>`).join('')}
     </select>
     <input id="bwBulkCustomVal" placeholder="Value" style="width:120px;font-size:12px;padding:5px 8px;border:1px solid var(--border-color);border-radius:6px">
-    <button class="btn btn-sm btn-secondary" onclick="_bulkApplyCustomField()">Apply Custom</button>`;
+    <button class="btn btn-sm btn-secondary" onclick="_bulkApplyCustomField()">Apply Custom</button></span>`;
   }
   html += `
-    <span style="margin-left:auto;font-size:11px;color:var(--text-muted)">Showing ${previewRows.length.toLocaleString()} of <strong>${rows.length.toLocaleString()}</strong> rows</span>
+    <span class="bw-shown" style="margin-left:auto;font-size:11px;color:var(--text-muted)">Showing ${previewRows.length.toLocaleString()} of <strong>${rows.length.toLocaleString()}</strong> rows</span>
   </div>`;
 
   if (overCap) {
@@ -8332,9 +8558,9 @@ function renderCustomers() {
       };
       _custCustomCols.forEach(col => { cellMap[col.key] = _customCellHtml(col, c.customFields?.[col.key]); });
       html += `<tr data-id="${c.id}">
-<td>${start + i + 1}</td>
-<td><div class="actions-cell">
-<button class="btn-icon" onclick="viewCustomerOrders(${c.id})" title="Order History"><svg style="fill:var(--color-info)"><use href="#icon-history"/></svg></button>
+        <td>${start + i + 1}</td>
+        <td><div class="actions-cell">
+          <button class="btn-icon" onclick="viewCustomerOrders(${c.id})" title="Order History"><svg style="fill:var(--color-info)"><use href="#icon-history"/></svg></button>
           ${canAccess('customers','edit') ? `<button class="btn-icon" onclick="openCustomerModal(${c.id})" title="Edit"><svg style="fill:var(--brand-primary)"><use href="#icon-edit"/></svg></button>` : ''}
           ${canAccess('customers','delete') ? `<button class="btn-icon" onclick="deleteCustomer(${c.id})" title="Delete"><svg style="fill:var(--color-danger)"><use href="#icon-delete"/></svg></button>` : ''}
         </div></td>
@@ -8510,9 +8736,9 @@ function renderSuppliers() {
       };
       _suppCustomCols.forEach(col => { cellMap[col.key] = _customCellHtml(col, s.customFields?.[col.key]); });
       html += `<tr data-id="${s.id}">
-<td>${start + i + 1}</td>
-<td><div class="actions-cell">
-<button class="btn-icon" onclick="viewSupplierOrders(${s.id})" title="Order History"><svg style="fill:var(--color-info)"><use href="#icon-history"/></svg></button>
+        <td>${start + i + 1}</td>
+        <td><div class="actions-cell">
+          <button class="btn-icon" onclick="viewSupplierOrders(${s.id})" title="Order History"><svg style="fill:var(--color-info)"><use href="#icon-history"/></svg></button>
           ${canAccess('suppliers','edit') ? `<button class="btn-icon" onclick="openSupplierModal(${s.id})" title="Edit"><svg style="fill:var(--brand-primary)"><use href="#icon-edit"/></svg></button>` : ''}
           ${canAccess('suppliers','delete') ? `<button class="btn-icon" onclick="deleteSupplier(${s.id})" title="Delete"><svg style="fill:var(--color-danger)"><use href="#icon-delete"/></svg></button>` : ''}
         </div></td>
@@ -8737,9 +8963,9 @@ function renderOrders(type) {
       // Add custom column cells
       _orderCustomCols.forEach(c => { cellMap[c.key] = _customCellHtml(c, o.customFields?.[c.key]); });
       html += `<tr data-id="${o.id}">
-<td>${start + i + 1}</td>
-<td><div class="actions-cell">
-<button class="btn-icon" onclick="viewOrder(${o.id})" title="View"><svg style="fill:var(--color-info)"><use href="#icon-eye"/></svg></button>
+        <td>${start + i + 1}</td>
+        <td><div class="actions-cell">
+          <button class="btn-icon" onclick="viewOrder(${o.id})" title="View"><svg style="fill:var(--color-info)"><use href="#icon-eye"/></svg></button>
           ${canAccess(type,'edit') ? `<button class="btn-icon" onclick="openOrderModal('${type}', ${o.id})" title="Edit"><svg style="fill:var(--brand-primary)"><use href="#icon-edit"/></svg></button>` : ''}
           ${canAccess(type,'delete') ? `<button class="btn-icon" onclick="deleteOrder(${o.id}, '${type}')" title="Delete"><svg style="fill:var(--color-danger)"><use href="#icon-delete"/></svg></button>` : ''}
         </div></td>
@@ -11423,7 +11649,8 @@ function collectionHealthHTML() {
     if (key === 'activityLog' && logged && logged > n) {
       parts.push('kept in full as an audit trail — archiving is the only way to shrink it');
     }
-    const advice = parts.length ? parts.join('; ') : 'Healthy';
+    const advice = parts.length ? parts.join('; ') : '✓ Healthy';
+    if (!parts.length) tone = 'var(--color-success)';
 
     // data-label drives the stacked card layout on a phone, where four columns
     // — one of them a sentence — squeeze into unreadable ribbons.
@@ -11798,7 +12025,20 @@ async function saveFileWithPicker(blob, suggestedName) {
   return true;
 }
 
+/**
+ * Backups (full JSON, per-collection JSON, "Export All Separately") hold raw,
+ * unmasked records — and the full one every account's hashes and the sync
+ * secret. Masking them would make them useless for restore, so they are
+ * all-or-nothing: Data Mgmt plus every export right and every "see" right.
+ */
+function _canExportAll() {
+  return canAccess('settings', 'data')
+    && EXPORT_TABLES.every(t => canAccess(t, 'export'))
+    && Object.entries(EXPORT_MASKED_COLUMNS).every(([t, r]) => canAccess(t, r.perm));
+}
+
 async function exportAllData() {
+  if (!_canExportAll()) { showToast('Backups need Data Mgmt plus every Export and "See" permission', 'error'); return; }
   const data = JSON.stringify(state, null, 2);
   const blob = new Blob([data], { type: 'application/json' });
   const saved = await saveFileWithPicker(blob, `${state.settings.branding.companyName}_backup_${new Date().toISOString().split('T')[0]}.json`);
@@ -11952,6 +12192,7 @@ function _resolveImportHeader(tableKey, header) {
 }
 
 async function exportTableCSV(type) {
+  if (!_exportAllowed(type)) return;
   let data, headers, filename;
 
   switch (type) {
@@ -11982,6 +12223,7 @@ async function exportTableCSV(type) {
       break;
   }
 
+  data = _maskExportData(type, headers, data);
   const csvContent = [headers, ...data].map(r => r.map(v => `"${String(v || '').replace(/"/g, '""')}"`).join(',')).join('\n');
   const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8' });
   const saved = await saveFileWithPicker(blob, `${filename}_${new Date().toISOString().split('T')[0]}.csv`);
@@ -11992,6 +12234,7 @@ async function exportTableCSV(type) {
 
 // --- Export to Excel (.xls) ---
 async function exportTableExcel(type) {
+  if (!_exportAllowed(type)) return;
   const { headers, data, filename } = getExportData(type);
   const rows = data.map(r => '<tr>' + r.map(c => `<td>${escapeHtml(String(c ?? ''))}</td>`).join('') + '</tr>').join('');
   const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:spreadsheet">
@@ -12006,6 +12249,7 @@ async function exportTableExcel(type) {
 
 // --- Export to PDF (print-friendly HTML) ---
 function exportTablePDF(type) {
+  if (!_exportAllowed(type)) return;
   const { headers, data, filename } = getExportData(type);
   const b = state.settings.branding;
   const rows = data.map(r => '<tr>' + r.map(c => `<td style="padding:6px 10px;border-bottom:1px solid #eee;font-size:12px">${escapeHtml(String(c ?? ''))}</td>`).join('') + '</tr>').join('');
@@ -12058,13 +12302,14 @@ function getExportData(type) {
       filename = type+'_orders'; break;
     default: headers=[]; data=[]; filename='export';
   }
-  return { headers, data, filename };
+  return { headers, data: _maskExportData(type, headers, data), filename };
 }
 
 // --- Export dropdown for table pages ---
 function showExportMenu(type, btnEl) {
   const existing = document.getElementById('exportDropdown');
   if (existing) { existing.remove(); return; }
+  if (!_exportAllowed(type)) return;
   const dd = document.createElement('div');
   dd.id = 'exportDropdown';
   dd.style.cssText = 'position:absolute;background:var(--bg-card);border:1px solid var(--border-color);border-radius:8px;box-shadow:var(--shadow-lg);z-index:200;padding:4px;min-width:140px;right:0;top:100%';
@@ -12338,6 +12583,7 @@ async function finishSecuritySetup() {
 // 26. PER-COLLECTION EXPORT/IMPORT
 // ============================================================
 async function exportCollectionJSON(name) {
+  if (!_canExportAll()) { showToast('Backups need Data Mgmt plus every Export and "See" permission', 'error'); return; }
   const data = state[name] || [];
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const saved = await saveFileWithPicker(blob, `${name}_${new Date().toISOString().split('T')[0]}.json`);
@@ -12375,6 +12621,7 @@ function importCollectionJSON(event, name) {
 }
 
 function exportOrganizedBackup() {
+  if (!_canExportAll()) { showToast('Backups need Data Mgmt plus every Export and "See" permission', 'error'); return; }
   showToast('Exporting files...', 'info');
   const collections = ['products','customers','suppliers','orders','activityLog'];
   let delay = 0;
@@ -12877,15 +13124,24 @@ const ADMIN_GRADE_SETTINGS_PERMS = ['branding', 'data', 'users', 'usersCreateAdm
 
 const DEFAULT_PERMISSIONS = {
   dashboard:{view:true,viewWelcomeBanner:true,viewDashFilters:true,viewSalesKpi:true,viewPurchaseKpi:true,viewStockAlerts:true,viewRecentOrders:true,viewMonthlyChart:true,viewTopProducts:true,viewCategoryChart:true,viewRevenueByCategoryChart:true,viewLowStockAlertsCard:true,viewGrossProfitKpi:true,viewInventoryValueKpi:true,viewTotalOrdersKpi:true,viewPendingKpi:true,viewUnpaidKpi:true,viewCancelledKpi:true,viewGrossSalesKpi:true,viewNetSalesKpi:true,viewProductsKpi:true,viewCustomersKpi:true,viewSuppliersKpi:true},
-  products:{view:true,add:true,edit:true,delete:true,viewPrices:true},
-  customers:{view:true,add:true,edit:true,delete:true,viewContact:true},
-  suppliers:{view:true,add:true,edit:true,delete:true,viewContact:true},
-  sales:{view:true,add:true,edit:true,delete:true,viewValues:true},
-  purchases:{view:true,add:true,edit:true,delete:true,viewValues:true},
+  products:{view:true,add:true,edit:true,delete:true,viewPrices:true,export:true},
+  customers:{view:true,add:true,edit:true,delete:true,viewContact:true,export:true},
+  suppliers:{view:true,add:true,edit:true,delete:true,viewContact:true,export:true},
+  sales:{view:true,add:true,edit:true,delete:true,viewValues:true,export:true},
+  purchases:{view:true,add:true,edit:true,delete:true,viewValues:true,export:true},
   reports:{view:true},
   whatsapp:{view:true,edit:true},
   // Updated 24-05-2026: Added activityLogsConfig and usersCreateAdmin under settings and updated all value to true from false.
   settings:{view:true,branding:true,tax:true,data:true,users:true,usersCreateAdmin:false,roles:true,columns:true,security:true,activityLogs:true,activityLogsConfig:true,dropdowns:true,invoiceTemplate:true,reportConfig:true,prodConfig:true,spoConfig:true},
+};
+
+// Permissions added after users and roles already existed. A saved permission
+// set that predates one has no key for it; treating that as "denied" would
+// silently take the right away from everyone while the permission matrix
+// (which ticks any key that is not explicitly false) still showed it granted.
+// So a missing key here means "as before" — allowed — until an admin unticks it.
+const PERMS_ALLOWED_IF_MISSING = {
+  products: ['export'], customers: ['export'], suppliers: ['export'], sales: ['export'], purchases: ['export'],
 };
 
 function canAccess(module, action) {
@@ -12893,7 +13149,9 @@ function canAccess(module, action) {
   const perms = currentUser.permissions || {};
   const mod = perms[module];
   if (!mod) return false;
-  return !!mod[action || 'view'];
+  const act = action || 'view';
+  if (mod[act] === undefined && (PERMS_ALLOWED_IF_MISSING[module] || []).includes(act)) return true;
+  return !!mod[act];
 }
 
 function maskValue(value, module, field) {
@@ -13311,8 +13569,46 @@ function applyUserPermissions() {
       nav.style.display = canAccess(mod, 'view') ? '' : 'none';
     }
   });
+  // Export is its own right per table (Settings → Users / Roles → <module> → Export).
+  EXPORT_TABLES.forEach(t => {
+    const btn = document.getElementById(t + 'ExportBtn');
+    if (btn) btn.style.display = canAccess(t, 'export') ? '' : 'none';
+  });
+  const exportAll = document.getElementById('exportAllBtn');
+  if (exportAll) exportAll.style.display = _canExportAll() ? '' : 'none';
   const logoutBtn = document.getElementById('logoutBtn');
   if (logoutBtn) logoutBtn.style.display = (state.settings.users||[]).length > 0 ? '' : 'none';
+}
+
+const EXPORT_TABLES = ['products', 'customers', 'suppliers', 'sales', 'purchases'];
+
+/** Hiding the button is not enough — every export entry point checks too. */
+function _exportAllowed(type) {
+  if (EXPORT_TABLES.includes(type) && !canAccess(type, 'export')) {
+    const what = { sales: 'sales orders', purchases: 'purchase orders' }[type] || type;
+    showToast(`You do not have permission to export ${what}`, 'error');
+    return false;
+  }
+  return true;
+}
+
+// Exports honour the same "see" rights as the screen: a user who may not see
+// prices / order values / contact details gets those columns blank in the
+// file. Matched by header text, so both export builders share one rule.
+const EXPORT_MASKED_COLUMNS = {
+  products:  { perm: 'viewPrices',  headers: ['Cost Price', 'Sales Price', 'Margin%'] },
+  customers: { perm: 'viewContact', headers: ['Phone', 'Email'] },
+  suppliers: { perm: 'viewContact', headers: ['Phone', 'Email'] },
+  sales:     { perm: 'viewValues',  headers: ['Subtotal', 'Tax', 'Total'] },
+  purchases: { perm: 'viewValues',  headers: ['Subtotal', 'Tax', 'Total'] },
+};
+
+function _maskExportData(type, headers, data) {
+  const rule = EXPORT_MASKED_COLUMNS[type];
+  if (!rule || canAccess(type, rule.perm)) return data;
+  const idx = headers.map((h, i) => rule.headers.includes(h) ? i : -1).filter(i => i >= 0);
+  if (!idx.length) return data;
+  return data.map(row => row.map((v, i) => idx.includes(i) ? '' : v));
 }
 
 // Updated 24-05-2026: Updated renderUsersSettings function for the same controlling who can delete which users feature.
@@ -13486,11 +13782,11 @@ function openUserModal(editId) {
   // Updated 24-05-2026 - End
   const modules = [
     {key:'dashboard',label:'Dashboard',actions:['view','viewWelcomeBanner','viewDashFilters','viewGrossSalesKpi','viewNetSalesKpi','viewSalesKpi','viewPurchaseKpi','viewGrossProfitKpi','viewInventoryValueKpi','viewTotalOrdersKpi','viewPendingKpi','viewUnpaidKpi','viewCancelledKpi','viewProductsKpi','viewCustomersKpi','viewSuppliersKpi','viewStockAlerts','viewRecentOrders','viewMonthlyChart','viewTopProducts','viewCategoryChart','viewRevenueByCategoryChart','viewLowStockAlertsCard']},
-    {key:'products',label:'Products',actions:['view','add','edit','delete','viewPrices']},
-    {key:'customers',label:'Customers',actions:['view','add','edit','delete','viewContact']},
-    {key:'suppliers',label:'Suppliers',actions:['view','add','edit','delete','viewContact']},
-    {key:'sales',label:'Sales Orders',actions:['view','add','edit','delete','viewValues']},
-    {key:'purchases',label:'Purchases',actions:['view','add','edit','delete','viewValues']},
+    {key:'products',label:'Products',actions:['view','add','edit','delete','viewPrices','export']},
+    {key:'customers',label:'Customers',actions:['view','add','edit','delete','viewContact','export']},
+    {key:'suppliers',label:'Suppliers',actions:['view','add','edit','delete','viewContact','export']},
+    {key:'sales',label:'Sales Orders',actions:['view','add','edit','delete','viewValues','export']},
+    {key:'purchases',label:'Purchases',actions:['view','add','edit','delete','viewValues','export']},
     // 'edit' is the saved wording (title, link, closing text, toggles). It is
     // shared across devices, so building a message and rewriting the template
     // for everyone are deliberately separate rights.
@@ -13517,7 +13813,7 @@ function openUserModal(editId) {
     <h4 style="margin:16px 0 8px">Permissions${isSelf?' <span style="font-size:11px;font-weight:normal;color:var(--text-secondary)">(locked &mdash; self-edit)</span>':''}</h4>
     ${modules.map(m => {
       // Updated 24-05-2026 & Updated 26-05-2026: Added new permissions to actionLabels and ensured they are displayed properly in the permissions matrix.
-      const actionLabels = {view:'View',add:'Add',edit:'Edit',delete:'Delete',viewPrices:'See Prices',viewValues:'See Values',viewContact:'See Contact',viewWelcomeBanner:'Welcome Banner',viewDashFilters:'Dashboard Filters',viewGrossSalesKpi:'Gross Sales KPI',viewNetSalesKpi:'Net Sales KPI',viewSalesKpi:'Sales KPI',viewPurchaseKpi:'Purchase KPI',viewStockAlerts:'Stock Alerts KPI',viewRecentOrders:'Recent Orders',viewMonthlyChart:'Monthly Chart',viewTopProducts:'Top Products',viewCategoryChart:'Inventory by Category',viewRevenueByCategoryChart:'Revenue by Category',viewLowStockAlertsCard:'Low Stock Alerts Card',viewGrossProfitKpi:'Gross Profit KPI',viewInventoryValueKpi:'Inventory Value KPI',viewTotalOrdersKpi:'Total Orders KPI',viewPendingKpi:'Pending KPI',viewUnpaidKpi:'Unpaid KPI',viewCancelledKpi:'Cancelled KPI',viewProductsKpi:'Products KPI',viewCustomersKpi:'Customers KPI',viewSuppliersKpi:'Suppliers KPI',branding:'Branding',tax:'Tax & Currency',data:'Data Mgmt',users:'Users',usersCreateAdmin:'Create Admin Users',roles:'Roles',columns:'Columns',security:'Security',activityLogs:'View Activity Logs',activityLogsConfig:'Edit Tracking Config',dropdowns:'Dropdowns',invoiceTemplate:'Invoice Template',reportConfig:'Report Config',prodConfig:'Prod Config',spoConfig:'SPO Config'};
+      const actionLabels = {view:'View',add:'Add',edit:'Edit',delete:'Delete',viewPrices:'See Prices',export:'Export',viewValues:'See Values',viewContact:'See Contact',viewWelcomeBanner:'Welcome Banner',viewDashFilters:'Dashboard Filters',viewGrossSalesKpi:'Gross Sales KPI',viewNetSalesKpi:'Net Sales KPI',viewSalesKpi:'Sales KPI',viewPurchaseKpi:'Purchase KPI',viewStockAlerts:'Stock Alerts KPI',viewRecentOrders:'Recent Orders',viewMonthlyChart:'Monthly Chart',viewTopProducts:'Top Products',viewCategoryChart:'Inventory by Category',viewRevenueByCategoryChart:'Revenue by Category',viewLowStockAlertsCard:'Low Stock Alerts Card',viewGrossProfitKpi:'Gross Profit KPI',viewInventoryValueKpi:'Inventory Value KPI',viewTotalOrdersKpi:'Total Orders KPI',viewPendingKpi:'Pending KPI',viewUnpaidKpi:'Unpaid KPI',viewCancelledKpi:'Cancelled KPI',viewProductsKpi:'Products KPI',viewCustomersKpi:'Customers KPI',viewSuppliersKpi:'Suppliers KPI',branding:'Branding',tax:'Tax & Currency',data:'Data Mgmt',users:'Users',usersCreateAdmin:'Create Admin Users',roles:'Roles',columns:'Columns',security:'Security',activityLogs:'View Activity Logs',activityLogsConfig:'Edit Tracking Config',dropdowns:'Dropdowns',invoiceTemplate:'Invoice Template',reportConfig:'Report Config',prodConfig:'Prod Config',spoConfig:'SPO Config'};
       const allChecked = m.actions.every(a => perms[m.key]?.[a] !== false);
       return `<div style="margin-bottom:12px;padding:10px;background:var(--bg-input);border-radius:8px${isSelf?';opacity:0.6':''}">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
@@ -13807,11 +14103,11 @@ function openRoleModal(editId) {
 
   const modules = [
     {key:'dashboard',label:'Dashboard',actions:['view','viewWelcomeBanner','viewDashFilters','viewGrossSalesKpi','viewNetSalesKpi','viewSalesKpi','viewPurchaseKpi','viewGrossProfitKpi','viewInventoryValueKpi','viewTotalOrdersKpi','viewPendingKpi','viewUnpaidKpi','viewCancelledKpi','viewProductsKpi','viewCustomersKpi','viewSuppliersKpi','viewStockAlerts','viewRecentOrders','viewMonthlyChart','viewTopProducts','viewCategoryChart','viewRevenueByCategoryChart','viewLowStockAlertsCard']},
-    {key:'products',label:'Products',actions:['view','add','edit','delete','viewPrices']},
-    {key:'customers',label:'Customers',actions:['view','add','edit','delete','viewContact']},
-    {key:'suppliers',label:'Suppliers',actions:['view','add','edit','delete','viewContact']},
-    {key:'sales',label:'Sales Orders',actions:['view','add','edit','delete','viewValues']},
-    {key:'purchases',label:'Purchases',actions:['view','add','edit','delete','viewValues']},
+    {key:'products',label:'Products',actions:['view','add','edit','delete','viewPrices','export']},
+    {key:'customers',label:'Customers',actions:['view','add','edit','delete','viewContact','export']},
+    {key:'suppliers',label:'Suppliers',actions:['view','add','edit','delete','viewContact','export']},
+    {key:'sales',label:'Sales Orders',actions:['view','add','edit','delete','viewValues','export']},
+    {key:'purchases',label:'Purchases',actions:['view','add','edit','delete','viewValues','export']},
     // 'edit' is the saved wording (title, link, closing text, toggles). It is
     // shared across devices, so building a message and rewriting the template
     // for everyone are deliberately separate rights.
@@ -13821,7 +14117,7 @@ function openRoleModal(editId) {
     {key:'settings',label:'Settings',actions:['view','branding','tax','data','users','usersCreateAdmin','roles','columns','security','activityLogs','activityLogsConfig','dropdowns','invoiceTemplate','reportConfig','prodConfig','spoConfig']},
   ];
   // Updated 24-05-2026: Added invoiceTemplate and usersCreateAdmin & Added privilege escalation gate labels for the settings permissions that can grant admin-level access when editing roles, similar to the logic in openUserModal.
-  const actionLabels = {view:'View',add:'Add',edit:'Edit',delete:'Delete',viewPrices:'See Prices',viewValues:'See Values',viewContact:'See Contact',viewWelcomeBanner:'Welcome Banner',viewDashFilters:'Dashboard Filters',viewSalesKpi:'Sales KPI',viewPurchaseKpi:'Purchase KPI',viewStockAlerts:'Stock Alerts KPI',viewRecentOrders:'Recent Orders',viewMonthlyChart:'Monthly Chart',viewTopProducts:'Top Products',viewCategoryChart:'Inventory by Category',viewRevenueByCategoryChart:'Revenue by Category',viewLowStockAlertsCard:'Low Stock Alerts Card',viewGrossProfitKpi:'Gross Profit KPI',viewInventoryValueKpi:'Inventory Value KPI',viewTotalOrdersKpi:'Total Orders KPI',viewPendingKpi:'Pending KPI',viewUnpaidKpi:'Unpaid KPI',viewCancelledKpi:'Cancelled KPI',viewGrossSalesKpi:'Gross Sales KPI',viewNetSalesKpi:'Net Sales KPI',viewProductsKpi:'Products KPI',viewCustomersKpi:'Customers KPI',viewSuppliersKpi:'Suppliers KPI',branding:'Branding',tax:'Tax & Currency',data:'Data Mgmt',users:'Users',usersCreateAdmin:'Create Admin Users',roles:'Roles',columns:'Columns',security:'Security',activityLogs:'View Activity Logs',activityLogsConfig:'Edit Tracking Config',dropdowns:'Dropdowns',invoiceTemplate:'Invoice Template',reportConfig:'Report Config',prodConfig:'Prod Config',spoConfig:'SPO Config'};
+  const actionLabels = {view:'View',add:'Add',edit:'Edit',delete:'Delete',viewPrices:'See Prices',export:'Export',viewValues:'See Values',viewContact:'See Contact',viewWelcomeBanner:'Welcome Banner',viewDashFilters:'Dashboard Filters',viewSalesKpi:'Sales KPI',viewPurchaseKpi:'Purchase KPI',viewStockAlerts:'Stock Alerts KPI',viewRecentOrders:'Recent Orders',viewMonthlyChart:'Monthly Chart',viewTopProducts:'Top Products',viewCategoryChart:'Inventory by Category',viewRevenueByCategoryChart:'Revenue by Category',viewLowStockAlertsCard:'Low Stock Alerts Card',viewGrossProfitKpi:'Gross Profit KPI',viewInventoryValueKpi:'Inventory Value KPI',viewTotalOrdersKpi:'Total Orders KPI',viewPendingKpi:'Pending KPI',viewUnpaidKpi:'Unpaid KPI',viewCancelledKpi:'Cancelled KPI',viewGrossSalesKpi:'Gross Sales KPI',viewNetSalesKpi:'Net Sales KPI',viewProductsKpi:'Products KPI',viewCustomersKpi:'Customers KPI',viewSuppliersKpi:'Suppliers KPI',branding:'Branding',tax:'Tax & Currency',data:'Data Mgmt',users:'Users',usersCreateAdmin:'Create Admin Users',roles:'Roles',columns:'Columns',security:'Security',activityLogs:'View Activity Logs',activityLogsConfig:'Edit Tracking Config',dropdowns:'Dropdowns',invoiceTemplate:'Invoice Template',reportConfig:'Report Config',prodConfig:'Prod Config',spoConfig:'SPO Config'};
 
   const body = `<div class="form-grid">
     <div class="form-group"><label class="form-label">Role Name <span class="required">*</span></label><input class="form-control" id="roleName" value="${escapeHtml(r?.name||'')}" placeholder="e.g. Store Manager"></div>
