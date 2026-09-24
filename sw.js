@@ -4,7 +4,7 @@
  * the old version will otherwise keep serving it, and your fix will be
  * reported as broken.
  */
-const CACHE = 'inventory-v3.12.1';
+const CACHE = 'inventory-v3.13.1';
 
 const ASSETS = [
   './',

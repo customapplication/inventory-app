@@ -1385,6 +1385,56 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 .mcard-actions .btn-icon { width: 36px; height: 36px; }
 .mcard-actions .btn-icon svg { width: 17px; height: 17px; }
 
+/* ---------- Mobile filter sheet ----------
+   The Filter button is a phone-only stand-in for the header filter icons,
+   which no longer exist once the table becomes a card list. It is revealed
+   in the mobile block at the end of this sheet. */
+.filter-btn { display: none; }
+.filter-btn.has-filters { border-color: var(--brand-primary); color: var(--brand-primary); }
+.filter-count {
+  margin-left: 6px; background: var(--brand-primary); color: #fff;
+  border-radius: 10px; font-size: 10px; font-weight: 700; padding: 1px 6px;
+}
+
+.mfs-overlay {
+  position: fixed; inset: 0; z-index: 7100; background: rgba(0,0,0,0.45);
+  display: none; align-items: flex-end; justify-content: center;
+}
+.mfs-sheet {
+  background: var(--bg-card); color: var(--text-primary);
+  width: 100%; max-width: 480px; max-height: 85vh; overflow-y: auto;
+  border-radius: 18px 18px 0 0; box-shadow: var(--shadow-lg);
+  padding: 14px 14px max(14px, env(safe-area-inset-bottom));
+}
+.mfs-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.mfs-list { display: flex; flex-direction: column; gap: 8px; }
+.mfs-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  width: 100%; min-height: 48px; padding: 8px 12px; text-align: left; cursor: pointer;
+  background: var(--bg-input); color: var(--text-primary);
+  border: 1px solid var(--border-color); border-radius: 10px; font-size: 14px;
+}
+.mfs-row.active { border-color: var(--brand-primary); }
+.mfs-label { font-weight: 600; }
+.mfs-value { color: var(--text-secondary); font-size: 12px; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mfs-row.active .mfs-value { color: var(--brand-primary); }
+.mfs-empty { font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin: 0; }
+.mfs-clear { width: 100%; justify-content: center; min-height: 44px; margin-top: 12px; }
+
+/* The per-column popover, opened from the sheet, becomes a sheet itself. */
+.col-filter-dropdown.col-filter-sheet {
+  position: fixed; top: auto; left: 0; right: 0; bottom: 0;
+  width: 100%; max-width: none; max-height: 85vh; overflow-y: auto;
+  border-radius: 16px 16px 0 0; z-index: 7200;
+  padding: 14px 14px max(14px, env(safe-area-inset-bottom));
+  box-shadow: 0 -8px 32px rgba(0,0,0,0.25);
+}
+.col-filter-sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.col-filter-sheet .col-filter-list { max-height: 45vh !important; }
+.col-filter-sheet label { min-height: 38px; display: flex; align-items: center; gap: 8px; }
+.col-filter-sheet input[type="text"], .col-filter-sheet input[type="number"], .col-filter-sheet select { min-height: 38px; font-size: 16px; }
+.col-filter-sheet .btn { min-height: 42px; }
+
 /* ---------- In-app colour sheet (touch devices; see openColorSheet) ---------- */
 .cs-overlay {
   position: fixed; inset: 0; z-index: 7100; background: rgba(0,0,0,0.45);
@@ -1791,6 +1841,28 @@ textarea.form-control { resize: vertical; min-height: 80px; }
     line-height: 1.45;
   }
 
+  /* Record-page toolbars. On a phone the buttons were a ragged run of
+     different widths over three or four lines. Two per line, each a full
+     thumb target; the primary action and the dropdowns take a line of their
+     own, and a lone last button stretches to fill its line rather than
+     leaving a gap. */
+  .record-toolbar { display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
+  .record-toolbar .table-search { width: 100%; }
+  .record-toolbar .table-search input { width: 100%; box-sizing: border-box; }
+  .record-toolbar .btn-group { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; }
+  .record-toolbar .btn-group > * { flex: 1 1 calc(50% - 4px); min-width: 0; }
+  .record-toolbar .btn-group > select,
+  .record-toolbar .btn-group > .btn-split,
+  .record-toolbar .btn-group > .btn-primary { flex-basis: 100%; width: 100% !important; }
+  .record-toolbar .btn-group .btn {
+    min-height: 44px; justify-content: center; white-space: nowrap;
+    padding-left: 8px; padding-right: 8px;
+  }
+  .record-toolbar .btn-split { display: flex !important; }
+  .record-toolbar .btn-split .btn { flex: 1 1 0; }
+  /* Header filter icons have no home on a phone — this is their replacement. */
+  .record-toolbar .filter-btn { display: inline-flex; }
+
   /* `.modal.modal-xl` (two classes) outranks the one-class full-screen rule
      earlier, so XL dialogs kept a 95vw cap and a grey strip down the right. */
   .modal.modal-lg, .modal.modal-xl { max-width: none; }
@@ -2186,7 +2258,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
       <section class="page-section" id="page-products">
         <div class="card">
           <div class="card-header">
-            <div class="table-toolbar" style="width:100%">
+            <div class="table-toolbar record-toolbar" style="width:100%">
               <div class="table-search">
                 <svg><use href="#icon-search"/></svg>
                 <input type="text" placeholder="Search products..." id="productSearchInput" oninput="toggleSearchClear(this);debounceRender('products')">
@@ -2211,6 +2283,9 @@ textarea.form-control { resize: vertical; min-height: 80px; }
                   <svg><use href="#icon-print"/></svg> Bulk Print
                   <span id="bulkPrintBadge" class="nav-badge" style="display:none;position:absolute;top:-6px;right:-6px;font-size:9px;min-width:18px;padding:1px 5px">0</span>
                 </button>
+                <button class="btn btn-secondary filter-btn" id="productsFilterBtn" onclick="openMobileFilterSheet('products')" title="Filter columns">
+                  <svg><use href="#icon-filter"/></svg> Filter<span class="filter-count" style="display:none">0</span>
+                </button>
               </div>
             </div>
           </div>
@@ -2230,7 +2305,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
       <section class="page-section" id="page-customers">
         <div class="card">
           <div class="card-header">
-            <div class="table-toolbar" style="width:100%">
+            <div class="table-toolbar record-toolbar" style="width:100%">
               <div class="table-search">
                 <svg><use href="#icon-search"/></svg>
                 <input type="text" placeholder="Search customers..." id="customerSearchInput" oninput="toggleSearchClear(this);debounceRender('customers')">
@@ -2242,6 +2317,9 @@ textarea.form-control { resize: vertical; min-height: 80px; }
                 </button>
                 <button class="btn btn-secondary" id="customersExportBtn" onclick="showExportMenu('customers',this)">
                   <svg><use href="#icon-export"/></svg> Export
+                </button>
+                <button class="btn btn-secondary filter-btn" id="customersFilterBtn" onclick="openMobileFilterSheet('customers')" title="Filter columns">
+                  <svg><use href="#icon-filter"/></svg> Filter<span class="filter-count" style="display:none">0</span>
                 </button>
               </div>
             </div>
@@ -2262,7 +2340,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
       <section class="page-section" id="page-suppliers">
         <div class="card">
           <div class="card-header">
-            <div class="table-toolbar" style="width:100%">
+            <div class="table-toolbar record-toolbar" style="width:100%">
               <div class="table-search">
                 <svg><use href="#icon-search"/></svg>
                 <input type="text" placeholder="Search suppliers..." id="supplierSearchInput" oninput="toggleSearchClear(this);debounceRender('suppliers')">
@@ -2274,6 +2352,9 @@ textarea.form-control { resize: vertical; min-height: 80px; }
                 </button>
                 <button class="btn btn-secondary" id="suppliersExportBtn" onclick="showExportMenu('suppliers',this)">
                   <svg><use href="#icon-export"/></svg> Export
+                </button>
+                <button class="btn btn-secondary filter-btn" id="suppliersFilterBtn" onclick="openMobileFilterSheet('suppliers')" title="Filter columns">
+                  <svg><use href="#icon-filter"/></svg> Filter<span class="filter-count" style="display:none">0</span>
                 </button>
               </div>
             </div>
@@ -2294,7 +2375,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
       <section class="page-section" id="page-sales">
         <div class="card">
           <div class="card-header">
-            <div class="table-toolbar" style="width:100%">
+            <div class="table-toolbar record-toolbar" style="width:100%">
               <div class="table-search">
                 <svg><use href="#icon-search"/></svg>
                 <input type="text" placeholder="Search sales orders..." id="salesSearchInput" oninput="toggleSearchClear(this);debounceRender('sales')">
@@ -2309,6 +2390,9 @@ textarea.form-control { resize: vertical; min-height: 80px; }
                 </button>
                 <button class="btn btn-secondary" id="salesExportBtn" onclick="showExportMenu('sales',this)">
                   <svg><use href="#icon-export"/></svg> Export
+                </button>
+                <button class="btn btn-secondary filter-btn" id="salesFilterBtn" onclick="openMobileFilterSheet('sales')" title="Filter columns">
+                  <svg><use href="#icon-filter"/></svg> Filter<span class="filter-count" style="display:none">0</span>
                 </button>
               </div>
             </div>
@@ -2329,7 +2413,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
       <section class="page-section" id="page-purchases">
         <div class="card">
           <div class="card-header">
-            <div class="table-toolbar" style="width:100%">
+            <div class="table-toolbar record-toolbar" style="width:100%">
               <div class="table-search">
                 <svg><use href="#icon-search"/></svg>
                 <input type="text" placeholder="Search purchase orders..." id="purchasesSearchInput" oninput="toggleSearchClear(this);debounceRender('purchases')">
@@ -2344,6 +2428,9 @@ textarea.form-control { resize: vertical; min-height: 80px; }
                 </button>
                 <button class="btn btn-secondary" id="purchasesExportBtn" onclick="showExportMenu('purchases',this)">
                   <svg><use href="#icon-export"/></svg> Export
+                </button>
+                <button class="btn btn-secondary filter-btn" id="purchasesFilterBtn" onclick="openMobileFilterSheet('purchases')" title="Filter columns">
+                  <svg><use href="#icon-filter"/></svg> Filter<span class="filter-count" style="display:none">0</span>
                 </button>
               </div>
             </div>
@@ -2998,7 +3085,7 @@ const KEYRING_KEY = 'covervault.keyring.v1';
 const PROFILE_KEY = 'covervault.profile.v1';
 const DEVICE_KEY = 'covervault.device.v1';
 const PBKDF2_ITER = 210000;
-const APP_BUILD = '3.12.1';
+const APP_BUILD = '3.13.1';
 
 // Collections that participate in sync (record arrays, merged by id).
 const SYNC_COLLECTIONS = ['products', 'customers', 'suppliers', 'orders', 'activityLog'];
@@ -5649,6 +5736,9 @@ function getUniqueColumnValues(tableKey, colKey) {
       val = party?.name || '';
     } else if (colKey === 'status') val = item.status || '';
     else if (colKey === 'payment' || colKey === 'paymentStatus') val = item.paymentStatus || '';
+    // Custom columns live in customFields, not on the record itself. Without
+    // this they offered an always-empty value list and filtered everything out.
+    else if (colKey.startsWith('custom_')) val = item.customFields?.[colKey];
     else val = item[colKey];
     if (val !== undefined && val !== null && val !== '') values.add(String(val));
   });
@@ -5657,8 +5747,115 @@ function getUniqueColumnValues(tableKey, colKey) {
 
 const COL_FILTER_CHECKBOX_LIMIT = 200; // Above this, use text search instead of checkboxes
 
+// ---------- Mobile filter sheet ----------
+// Column filters live in the table header, which phones never see: below the
+// breakpoint the table is replaced by cards. The toolbar's Filter button opens
+// this list of the same filterable columns instead, and each one opens the very
+// same popover the header icon opens — no second filter implementation.
+
+// The order pages are keyed 'sales'/'purchases' everywhere except in
+// tableConfig, where they are 'salesOrders'/'purchaseOrders'. Looking up the
+// page key found nothing, so filters configured for orders under
+// Settings → Columns never appeared — on any screen size.
+const TABLE_CONFIG_KEYS = { sales: 'salesOrders', purchases: 'purchaseOrders' };
+const cfgKeyFor = tableKey => TABLE_CONFIG_KEYS[tableKey] || tableKey;
+const tableColumnConfig = tableKey => state.settings.tableConfig?.[cfgKeyFor(tableKey)] || [];
+
+/** Columns the user configured as filterable (filterType other than 'none'). */
+function filterableColumns(tableKey) {
+  return tableColumnConfig(tableKey)
+    .filter(c => (c.filterType || 'none') !== 'none' && c.visible !== false)
+    .sort((a, b) => (a.order || 0) - (b.order || 0));
+}
+
+/** One label per active filter on a column, for the sheet and the badge. */
+function _activeFilterSummary(tableKey, colKey) {
+  const f = columnFilters[tableKey]?.[colKey];
+  if (!f) return '';
+  if (f._numericOp) {
+    const ops = { eq: '=', gt: '>', lt: '<', gte: '≥', lte: '≤' };
+    return f._numericOp === 'between'
+      ? `between ${f._numericVal} and ${f._numericVal2}`
+      : `${ops[f._numericOp] || ''} ${f._numericVal}`;
+  }
+  if (!Array.isArray(f) || !f.length) return '';
+  if (f._textMode) return `contains “${f[0]}”`;
+  return f.length <= 2 ? f.join(', ') : `${f.length} selected`;
+}
+
+function activeFilterCount(tableKey) {
+  const all = columnFilters[tableKey] || {};
+  return Object.keys(all).filter(k => _activeFilterSummary(tableKey, k)).length;
+}
+
+function openMobileFilterSheet(tableKey) {
+  document.querySelectorAll('.col-filter-dropdown').forEach(d => d.remove());
+  const cols = filterableColumns(tableKey);
+  let ov = document.getElementById('mfsOverlay');
+  if (!ov) {
+    ov = document.createElement('div');
+    ov.id = 'mfsOverlay';
+    ov.className = 'mfs-overlay';
+    ov.addEventListener('click', e => { if (e.target === ov) closeMobileFilterSheet(); });
+    document.body.appendChild(ov);
+  }
+  const rows = cols.map(c => {
+    const summary = _activeFilterSummary(tableKey, c.key);
+    return `<button type="button" class="mfs-row${summary ? ' active' : ''}"
+              onclick="_mfsPick('${tableKey}','${escapeHtml(c.key)}')">
+        <span class="mfs-label">${escapeHtml(c.label || c.key)}</span>
+        <span class="mfs-value">${summary ? escapeHtml(summary) : 'Any'}</span>
+      </button>`;
+  }).join('');
+  const count = activeFilterCount(tableKey);
+  ov.innerHTML = `
+    <div class="mfs-sheet" role="dialog" aria-modal="true" aria-label="Filters">
+      <div class="mfs-head">
+        <strong>Filters</strong>
+        <button type="button" class="btn btn-sm btn-secondary" onclick="closeMobileFilterSheet()">Close</button>
+      </div>
+      ${cols.length
+        ? `<div class="mfs-list">${rows}</div>`
+        : `<p class="mfs-empty">No filterable columns yet. Turn filters on for a column under
+             <strong>Settings → Columns</strong>.</p>`}
+      ${count ? `<button type="button" class="btn btn-secondary mfs-clear"
+                   onclick="clearAllColumnFilters('${tableKey}');closeMobileFilterSheet()">Clear all filters (${count})</button>` : ''}
+    </div>`;
+  ov.style.display = 'flex';
+}
+
+function closeMobileFilterSheet() {
+  const ov = document.getElementById('mfsOverlay');
+  if (ov) ov.style.display = 'none';
+}
+
+/** Column tapped in the sheet: hand over to the normal filter popover. */
+function _mfsPick(tableKey, colKey) {
+  closeMobileFilterSheet();
+  toggleColumnFilter(tableKey, colKey, null);
+}
+
+/** "Back" from a column popover returns to the list. */
+function closeColumnFilterSheet(tableKey) {
+  document.querySelectorAll('.col-filter-dropdown').forEach(d => d.remove());
+  openMobileFilterSheet(tableKey);
+}
+
+/** Keeps the toolbar button's count in step; called from renderFilterBadges. */
+function _syncFilterButton(tableKey) {
+  const btn = document.getElementById(tableKey + 'FilterBtn');
+  if (!btn) return;
+  const n = activeFilterCount(tableKey);
+  const badge = btn.querySelector('.filter-count');
+  if (badge) {
+    badge.textContent = n;
+    badge.style.display = n ? '' : 'none';
+  }
+  btn.classList.toggle('has-filters', n > 0);
+}
+
 function toggleColumnFilter(tableKey, colKey, event) {
-  event.stopPropagation();
+  if (event) event.stopPropagation();
   // Close any existing dropdown - if same column, just toggle off
   const existing = document.querySelector('.col-filter-dropdown');
   if (existing) {
@@ -5667,7 +5864,9 @@ function toggleColumnFilter(tableKey, colKey, event) {
     if (wasKey === tableKey + '.' + colKey) return; // toggle off
   }
 
-  const th = event.target.closest('th');
+  // On a phone the table is replaced by cards, so there is no <th> to hang
+  // this off. Called from the mobile filter sheet, it becomes a sheet itself.
+  const th = event ? event.target.closest('th') : null;
 
   const values = getUniqueColumnValues(tableKey, colKey);
   const activeFilters = columnFilters[tableKey]?.[colKey] || [];
@@ -5680,7 +5879,7 @@ function toggleColumnFilter(tableKey, colKey, event) {
   dd.addEventListener('mousedown', e => e.stopPropagation());
 
   // Determine filter type from config
-  const colCfg = (state.settings.tableConfig?.[tableKey] || []).find(c => c.key === colKey);
+  const colCfg = tableColumnConfig(tableKey).find(c => c.key === colKey);
   const cfgType = colCfg?.filterType || 'dropdown';
   const isNumeric = cfgType === 'numeric';
   const isSearch = cfgType === 'search';
@@ -5759,8 +5958,18 @@ function toggleColumnFilter(tableKey, colKey, event) {
   }
 
   // Append to body with fixed positioning so it never overflows th or table
+  if (!th) {
+    dd.classList.add('col-filter-sheet');
+    const label = (colCfg?.label || colKey);
+    dd.insertAdjacentHTML('afterbegin',
+      `<div class="col-filter-sheet-head">
+         <strong>${escapeHtml(label)}</strong>
+         <button type="button" class="btn btn-sm btn-secondary" onclick="closeColumnFilterSheet('${tableKey}')">Back</button>
+       </div>`);
+  }
   document.body.appendChild(dd);
   requestAnimationFrame(() => {
+    if (!th) return;                      // sheet mode is positioned by CSS
     const thRect = th.getBoundingClientRect();
     let top = thRect.bottom + 4;
     let left = thRect.left;
@@ -5860,6 +6069,7 @@ function applyColumnFiltersToData(data, tableKey) {
       if (colKey === 'customer') { const c = state.customers.find(x => x.id === item.partyId); val = c?.name || ''; }
       else if (colKey === 'supplier') { const s = state.suppliers.find(x => x.id === item.partyId); val = s?.name || ''; }
       else if (colKey === 'payment' || colKey === 'paymentStatus') val = item.paymentStatus || '';
+      else if (colKey.startsWith('custom_')) val = item.customFields?.[colKey];
       else val = item[colKey];
       const strVal = String(val ?? '');
       if (allowedValues._numericOp) {
@@ -5887,6 +6097,7 @@ function applyColumnFiltersToData(data, tableKey) {
 }
 
 function renderFilterBadges(tableKey) {
+  _syncFilterButton(tableKey);
   const filters = columnFilters[tableKey];
   if (!filters) return '';
   // A key whose value list has been emptied is not an active filter. Counting
@@ -5894,11 +6105,19 @@ function renderFilterBadges(tableKey) {
   // with nothing in it.
   const active = Object.entries(filters).filter(([, v]) => Array.isArray(v) && v.length > 0);
   if (!active.length) return '';
+  const cfg = tableColumnConfig(tableKey);
+  const labelOf = k => escapeHtml(cfg.find(c => c.key === k)?.label || k);
   let html = '<div class="filter-badges">';
   html += '<span style="font-size:11px;color:var(--text-secondary);margin-right:4px">Filters:</span>';
   for (const [colKey, values] of active) {
+    // A numeric filter is one condition stored as a marker array, not a list of
+    // values — printing its entries showed a raw "__numeric__" token.
+    if (values._numericOp) {
+      html += `<span class="filter-badge">${labelOf(colKey)}: ${escapeHtml(_activeFilterSummary(tableKey, colKey))} <button onclick="clearColumnFilter('${tableKey}','${colKey}')">&times;</button></span>`;
+      continue;
+    }
     values.forEach(v => {
-      html += `<span class="filter-badge">${escapeHtml(colKey)}: ${escapeHtml(v)} <button onclick="removeOneFilter('${tableKey}','${colKey}','${escapeHtml(v)}')">&times;</button></span>`;
+      html += `<span class="filter-badge">${labelOf(colKey)}: ${escapeHtml(v)} <button onclick="removeOneFilter('${tableKey}','${colKey}','${escapeHtml(v)}')">&times;</button></span>`;
     });
   }
   html += `<button class="btn btn-sm btn-ghost" style="font-size:10px;padding:1px 6px" onclick="clearAllColumnFilters('${tableKey}')">Clear All</button>`;
@@ -5915,7 +6134,7 @@ function removeOneFilter(tableKey, colKey, value) {
 
 function colFilterIcon(tableKey, colKey) {
   // Check filterType config - only show if configured (not 'none')
-  const colCfg = (state.settings.tableConfig?.[tableKey] || []).find(c => c.key === colKey);
+  const colCfg = tableColumnConfig(tableKey).find(c => c.key === colKey);
   const ft = colCfg?.filterType || 'none';
   if (ft === 'none') return '';
   const isActive = columnFilters[tableKey]?.[colKey]?.length > 0;
@@ -6292,7 +6511,7 @@ function renderProducts() {
   ];
   // Append custom cols
   const _prodCustomCols = (state.settings.tableConfig?.products || []).filter(c => c.isCustom && c.visible !== false);
-  _prodCustomCols.forEach(c => { _pColDefs.push({ key: c.key, isCustom: true, thHtml: () => `<th>${escapeHtml(c.label)}</th>` }); });
+  _prodCustomCols.forEach(c => { _pColDefs.push({ key: c.key, isCustom: true, thHtml: () => `<th>${colFilterIcon('products', c.key)}${escapeHtml(c.label)}</th>` }); });
   // Sort by tableConfig order
   const _pOrdered = _pColDefs.sort((a,b) => {
     const ai = _pCfg.findIndex(c => c.key === a.key);
@@ -6714,8 +6933,14 @@ function saveProduct(editId) {
     isMagSafe: document.getElementById('pMagSafe').checked,
     updatedAt: new Date().toISOString(),
   };
+  if (!validateCustomFields('products')) return;
   const customFieldValues = collectCustomFieldValues();
   if (customFieldValues) data.customFields = { ...(editId ? state.products.find(x => x.id === editId)?.customFields : {}), ...customFieldValues };
+
+  // Checked before the brand/model prompt, so an untouched form is not asked
+  // to add dropdown entries on its way to writing nothing.
+  const _current = editId ? state.products.find(x => x.id === editId) : null;
+  if (_current && _isUnchangedSave(_current, data)) return _skipUnchangedSave();
 
   // Prompt to add new Brand/Model to dropdowns, then persist.
   _promptAddCustomBrandModel(data.brand, data.model, () => _persistProductSave(editId, data));
@@ -6796,6 +7021,7 @@ function _persistProductSave(editId, data) {
   if (editId) {
     const idx = state.products.findIndex(x => x.id === editId);
     const oldProduct = { ...state.products[idx] };
+    if (_isUnchangedSave(state.products[idx], data)) return _skipUnchangedSave();
     if (idx >= 0) state.products[idx] = { ...state.products[idx], ...data };
     const changes = computeChanges(oldProduct, state.products[idx], 'product');
     // Track image additions/removals
@@ -8400,6 +8626,41 @@ applyMask(M,bm);placeFmt(M,bm);for(var r=0;r<M.s;r++)for(var c=0;c<M.s;c++)if(M.
 // ============================================================
 // ACTIVITY LOG
 // ============================================================
+/**
+ * True when this save would write the record back exactly as it already is.
+ *
+ * A no-op save is not free here: it re-encrypts the whole collection, appends a
+ * row to the append-only sync log, writes an audit entry whose change list is
+ * empty, and — worst — re-stamps updatedAt. Since merging is last-write-wins on
+ * that timestamp, an empty save on one device could outrank a REAL edit made
+ * slightly earlier on another and silently undo it.
+ *
+ * Compares the data actually about to be written rather than watching the form
+ * for events, so a value set in code (colour sheet, generated SKU, uploaded
+ * image, recalculated totals) is judged like any other. Anything it cannot
+ * compare cleanly counts as changed: saving needlessly is harmless, skipping a
+ * real edit is not.
+ */
+function _isUnchangedSave(oldRec, newData) {
+  if (!oldRec) return false;
+  for (const [k, v] of Object.entries(newData)) {
+    if (k === 'updatedAt') continue;       // re-stamped on every save by design
+    const cur = oldRec[k];
+    if (v && typeof v === 'object') {
+      if (JSON.stringify(v) !== JSON.stringify(cur)) return false;
+    } else if ((cur ?? '') !== (v ?? '')) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/** Close the form without touching storage, sync or the activity log. */
+function _skipUnchangedSave() {
+  closeModal();
+  showToast('No changes to save', 'info');
+}
+
 function computeChanges(oldObj, newObj, entityType) {
   if (!oldObj || !newObj) return [];
   const skipFields = new Set(['id','createdAt','updatedAt','customFields','imageUrl','barcode']);
@@ -8528,7 +8789,7 @@ function renderCustomers() {
     { key:'email',   thHtml: () => `<th class="${thClass('customers','email')}" onclick="toggleSort('customers','email')">${escapeHtml(_cLabel('email','Email'))} ${sortIcon('customers','email')}</th>` },
   ];
   const _custCustomCols = (state.settings.tableConfig?.customers || []).filter(c => c.isCustom && c.visible !== false);
-  _custCustomCols.forEach(c => { _cColDefs.push({ key: c.key, isCustom: true, thHtml: () => `<th>${escapeHtml(c.label)}</th>` }); });
+  _custCustomCols.forEach(c => { _cColDefs.push({ key: c.key, isCustom: true, thHtml: () => `<th>${colFilterIcon('customers', c.key)}${escapeHtml(c.label)}</th>` }); });
   const _cOrdered = _cColDefs.sort((a,b) => {
     const ai = _cCfg.findIndex(c => c.key === a.key);
     const bi = _cCfg.findIndex(c => c.key === b.key);
@@ -8636,12 +8897,14 @@ function saveCustomer(editId) {
     email: document.getElementById('cEmail').value.trim(),
     updatedAt: new Date().toISOString(),
   };
+  if (!validateCustomFields('customers')) return;
   const customFieldValues = collectCustomFieldValues();
   if (customFieldValues) data.customFields = { ...(editId ? state.customers.find(x => x.id === editId)?.customFields : {}), ...customFieldValues };
 
   if (editId) {
     const idx = state.customers.findIndex(x => x.id === editId);
     const oldCustomer = { ...state.customers[idx] };
+    if (_isUnchangedSave(state.customers[idx], data)) return _skipUnchangedSave();
     if (idx >= 0) state.customers[idx] = { ...state.customers[idx], ...data };
     const changes = computeChanges(oldCustomer, state.customers[idx], 'customer');
     showToast('Customer updated', 'success');
@@ -8705,7 +8968,7 @@ function renderSuppliers() {
     { key:'email',         thHtml: () => `<th>${escapeHtml(_sLabel('email','Email'))}</th>` },
   ];
   const _suppCustomCols = (state.settings.tableConfig?.suppliers || []).filter(c => c.isCustom && c.visible !== false);
-  _suppCustomCols.forEach(c => { _sColDefs.push({ key: c.key, isCustom: true, thHtml: () => `<th>${escapeHtml(c.label)}</th>` }); });
+  _suppCustomCols.forEach(c => { _sColDefs.push({ key: c.key, isCustom: true, thHtml: () => `<th>${colFilterIcon('suppliers', c.key)}${escapeHtml(c.label)}</th>` }); });
   const _sOrdered = _sColDefs.sort((a,b) => {
     const ai = _sCfg.findIndex(c => c.key === a.key);
     const bi = _sCfg.findIndex(c => c.key === b.key);
@@ -8819,12 +9082,14 @@ function saveSupplier(editId) {
     email: document.getElementById('sEmail').value.trim(),
     updatedAt: new Date().toISOString(),
   };
+  if (!validateCustomFields('suppliers')) return;
   const customFieldValues = collectCustomFieldValues();
   if (customFieldValues) data.customFields = { ...(editId ? state.suppliers.find(x => x.id === editId)?.customFields : {}), ...customFieldValues };
 
   if (editId) {
     const idx = state.suppliers.findIndex(x => x.id === editId);
     const oldSupplier = { ...state.suppliers[idx] };
+    if (_isUnchangedSave(state.suppliers[idx], data)) return _skipUnchangedSave();
     if (idx >= 0) state.suppliers[idx] = { ...state.suppliers[idx], ...data };
     const changes = computeChanges(oldSupplier, state.suppliers[idx], 'supplier');
     showToast('Supplier updated', 'success');
@@ -8900,25 +9165,25 @@ function renderOrders(type) {
 
   // Build headers in column config order, plus fixed # and Actions columns
   const colDefs = [
-    { key:'orderNumber', sortable:true, thHtml: () => `<th class="${thClass(type,'orderNumber')}" onclick="toggleSort('${type}','orderNumber')">${colLabel('orderNumber','Order #')} ${sortIcon(type,'orderNumber')}</th>` },
+    { key:'orderNumber', sortable:true, thHtml: () => `<th class="${thClass(type,'orderNumber')}" onclick="toggleSort('${type}','orderNumber')">${colFilterIcon(type,'orderNumber')}${colLabel('orderNumber','Order #')} ${sortIcon(type,'orderNumber')}</th>` },
     { key: partyKey, sortable:false, thHtml: () => `<th>${colLabel(partyKey, partyLabel)} ${colFilterIcon(type, partyKey)}</th>` },
-    { key:'date', sortable:true, thHtml: () => `<th class="${thClass(type,'date')}" onclick="toggleSort('${type}','date')">${colLabel('date','Date')} ${sortIcon(type,'date')}</th>` },
+    { key:'date', sortable:true, thHtml: () => `<th class="${thClass(type,'date')}" onclick="toggleSort('${type}','date')">${colFilterIcon(type,'date')}${colLabel('date','Date')} ${sortIcon(type,'date')}</th>` },
     { key:'items', sortable:false, thHtml: () => `<th>${colLabel('items','Items')}</th>` },
     // Updated 24-05-2026: Added qty and price.
     { key:'qty', sortable:false, thHtml: () => `<th>${colLabel('qty','Qty')}</th>` },
     { key:'price', sortable:false, thHtml: () => `<th>${colLabel('price','Avg Price')}</th>` },
-    { key:'subtotal', sortable:true, thHtml: () => `<th class="${thClass(type,'subtotal')}" onclick="toggleSort('${type}','subtotal')">${colLabel('subtotal','Subtotal')} ${sortIcon(type,'subtotal')}</th>` },
-    { key:'shipping', sortable:false, thHtml: () => `<th>${colLabel('shipping','Shipping')}</th>` },
-    { key:'packaging', sortable:false, thHtml: () => `<th>${colLabel('packaging','Packaging')}</th>` },
-    { key:'tax', sortable:false, thHtml: () => `<th>${colLabel('tax','Tax')}</th>` },
-    { key:'total', sortable:true, thHtml: () => `<th class="${thClass(type,'total')}" onclick="toggleSort('${type}','total')">${colLabel('total','Total')} ${sortIcon(type,'total')}</th>` },
+    { key:'subtotal', sortable:true, thHtml: () => `<th class="${thClass(type,'subtotal')}" onclick="toggleSort('${type}','subtotal')">${colFilterIcon(type,'subtotal')}${colLabel('subtotal','Subtotal')} ${sortIcon(type,'subtotal')}</th>` },
+    { key:'shipping', sortable:false, thHtml: () => `<th>${colFilterIcon(type,'shipping')}${colLabel('shipping','Shipping')}</th>` },
+    { key:'packaging', sortable:false, thHtml: () => `<th>${colFilterIcon(type,'packaging')}${colLabel('packaging','Packaging')}</th>` },
+    { key:'tax', sortable:false, thHtml: () => `<th>${colFilterIcon(type,'tax')}${colLabel('tax','Tax')}</th>` },
+    { key:'total', sortable:true, thHtml: () => `<th class="${thClass(type,'total')}" onclick="toggleSort('${type}','total')">${colFilterIcon(type,'total')}${colLabel('total','Total')} ${sortIcon(type,'total')}</th>` },
     { key:'status', sortable:false, thHtml: () => `<th>${colLabel('status','Status')} ${colFilterIcon(type, 'status')}</th>` },
     { key:'payment', sortable:false, thHtml: () => `<th>${colLabel('payment','Payment')} ${colFilterIcon(type, 'payment')}</th>` },
   ];
   // Add custom columns for this order type
   const _orderCustomCols = (state.settings.tableConfig?.[configKey] || []).filter(c => c.isCustom && c.visible !== false);
   _orderCustomCols.forEach(c => {
-    colDefs.push({ key: c.key, sortable: false, isCustom: true, thHtml: () => `<th>${escapeHtml(c.label)}</th>` });
+    colDefs.push({ key: c.key, sortable: false, isCustom: true, thHtml: () => `<th>${colFilterIcon(type, c.key)}${escapeHtml(c.label)}</th>` });
   });
   // Sort by column config order
   const orderedCols = colDefs.sort((a,b) => {
@@ -9490,11 +9755,13 @@ function saveOrder(type, editId) {
     notes: document.getElementById('oNotes').value.trim(),
     updatedAt: new Date().toISOString(),
   };
+  if (!validateCustomFields(cfgKeyFor(type))) return;
   const customFieldValues = collectCustomFieldValues();
   if (customFieldValues) orderData.customFields = { ...(editId ? state.orders.find(x => x.id === editId)?.customFields : {}), ...customFieldValues };
 
   if (editId) {
     const idx = state.orders.findIndex(x => x.id === editId);
+    if (idx >= 0 && _isUnchangedSave(state.orders[idx], orderData)) return _skipUnchangedSave();
     if (idx >= 0) {
       const oldOrder = { ...state.orders[idx], items: [...(state.orders[idx].items || [])] };
       const oldStatus = state.orders[idx].status;
@@ -16160,6 +16427,33 @@ function _customCellHtml(col, val) {
   return `<td>${escapeHtml(String(val))}</td>`;
 }
 
+/**
+ * Enforces "Mandatory" on custom columns at save time. Before this, mandatory
+ * only drew an asterisk and nothing checked it.
+ *
+ * Deliberately applies to records saved from the form, so marking an existing
+ * column mandatory does not retroactively block anything — the value is
+ * required the next time that record is edited and saved, exactly as asked.
+ * Yes/No columns are exempt: unticked IS an answer, so there is nothing to ask
+ * for. Returns true when the form may be saved.
+ */
+function validateCustomFields(tableKey) {
+  const cols = (state.settings.tableConfig?.[tableKey] || [])
+    .filter(c => c.isCustom && c.mandatory && c.visible !== false && c.type !== 'boolean');
+  for (const c of cols) {
+    const el = document.querySelector('.custom-field-input[data-key="' + c.key + '"]');
+    if (!el) continue;                       // column not on this form
+    if (String(el.value ?? '').trim()) continue;
+    showToast(`${c.label} is required`, 'error');
+    // Hidden inputs (image) cannot take focus; scroll their row into view.
+    const target = el.type === 'hidden' ? el.closest('.form-group') : el;
+    target?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    if (el.type !== 'hidden') el.focus();
+    return false;
+  }
+  return true;
+}
+
 function collectCustomFieldValues() {
   const fields = {};
   document.querySelectorAll('.custom-field-input').forEach(el => {
@@ -16170,19 +16464,69 @@ function collectCustomFieldValues() {
   return Object.keys(fields).length > 0 ? fields : undefined;
 }
 
+/**
+ * The value input for backfilling existing records. Typed to match the column
+ * so a date column offers a date picker rather than free text — the value is
+ * stored exactly as the edit form would store it.
+ */
+function _ccBackfillInputHtml(type) {
+  if (type === 'boolean') {
+    return `<select class="form-control" id="ccBackfillValue"><option value="true">Yes</option><option value="false">No</option></select>`;
+  }
+  if (type === 'image') {
+    return `<input class="form-control" id="ccBackfillValue" placeholder="Image URL (optional)">`;
+  }
+  const inputType = { number: 'number', date: 'date', email: 'email' }[type] || 'text';
+  const step = type === 'number' ? ' step="any"' : '';
+  return `<input class="form-control" id="ccBackfillValue" type="${inputType}"${step} placeholder="Value for existing records">`;
+}
+
+/** Type changed: swap the backfill input, keeping the rest of the form. */
+function _ccSyncBackfillInput() {
+  const host = document.getElementById('ccBackfillInputHost');
+  if (!host) return;
+  host.innerHTML = _ccBackfillInputHtml(document.getElementById('ccType').value);
+}
+
 function addCustomColumn(tableKey) {
+  const recCount = _countRecordsForTable(tableKey);
+  // Existing records have no value for a brand-new column. Offer to seed one
+  // now — optional, because leaving them blank is a perfectly good answer.
+  const backfill = recCount > 0 ? `
+    <div class="form-group full-width" style="background:var(--bg-input);border-radius:8px;padding:10px 12px">
+      <label class="form-check" style="margin:0;cursor:pointer">
+        <input type="checkbox" id="ccBackfillOn" onchange="document.getElementById('ccBackfillRow').style.display=this.checked?'':'none'">
+        <strong>Set a value on the ${recCount.toLocaleString('en-IN')} existing record${recCount === 1 ? '' : 's'}</strong>
+      </label>
+      <div style="font-size:11px;color:var(--text-secondary);margin:6px 0 0 22px;line-height:1.5">
+        Leave this off and existing records stay blank for this column. You can still fill them in one by one later.
+      </div>
+      <div id="ccBackfillRow" style="display:none;margin-top:8px">
+        <div id="ccBackfillInputHost">${_ccBackfillInputHtml('text')}</div>
+        <div style="font-size:11px;color:var(--text-secondary);margin-top:6px">
+          Existing records keep this value until someone edits them. Records with a value already are never overwritten.
+        </div>
+      </div>
+    </div>` : '';
   const body = `<div class="form-grid">
     <div class="form-group"><label class="form-label">Column Name <span class="required">*</span></label><input class="form-control" id="ccName" placeholder="e.g. Warranty Period"></div>
-    <div class="form-group"><label class="form-label">Data Type</label><select class="form-control" id="ccType">
+    <div class="form-group"><label class="form-label">Data Type</label><select class="form-control" id="ccType" onchange="_ccSyncBackfillInput()">
       <option value="text">Text</option><option value="number">Number</option><option value="date">Date</option>
       <option value="boolean">Yes/No</option><option value="textarea">Long Text</option><option value="select">Dropdown</option>
       <option value="email">Email</option><option value="image">Image</option>
     </select></div>
-    <div class="form-group"><label class="form-label">Default Value</label><input class="form-control" id="ccDefault" placeholder="Optional"></div>
-    <div class="form-group"><label class="form-check"><input type="checkbox" id="ccMandatory"> Mandatory</label></div>
+    <div class="form-group"><label class="form-label">Default Value</label><input class="form-control" id="ccDefault" placeholder="Optional"><span class="form-hint" style="font-size:11px">Pre-filled in the Add/Edit form for NEW records. Dropdown: comma-separated choices.</span></div>
+    <div class="form-group"><label class="form-check"><input type="checkbox" id="ccMandatory"> Mandatory</label><span class="form-hint" style="font-size:11px">Required the next time someone edits and saves a record.</span></div>
+    ${backfill}
   </div>`;
   openModal('Add Custom Column', body, `<button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
     <button class="btn btn-primary" onclick="doAddCustomColumn('${tableKey}')">Add Column</button>`, 'sm');
+}
+
+/** Which state collection a Columns-tab table key saves into. */
+function _collectionForTable(tableKey) {
+  if (tableKey === 'salesOrders' || tableKey === 'purchaseOrders') return 'orders';
+  return tableKey;
 }
 
 function doAddCustomColumn(tableKey) {
@@ -16204,10 +16548,41 @@ function doAddCustomColumn(tableKey) {
     state.settings.dropdownConfig[ddKey] = defaultVal ? defaultVal.split(',').map(v => v.trim()).filter(Boolean) : [];
   }
 
-  saveData('settings'); closeModal();
+  // Optional backfill: give every existing record a starting value, so the new
+  // column is not blank everywhere. Records that somehow already hold a value
+  // are left alone, and each touched record is re-stamped so it syncs.
+  let filled = 0;
+  let backfillValue = '';
+  if (document.getElementById('ccBackfillOn')?.checked) {
+    const raw = document.getElementById('ccBackfillValue')?.value ?? '';
+    backfillValue = type === 'boolean' ? (raw === 'true') : String(raw).trim();
+    const hasValue = backfillValue !== '' || type === 'boolean';
+    if (hasValue) {
+      const now = new Date().toISOString();
+      _getRecordsForTable(tableKey).forEach(rec => {
+        const cur = rec.customFields?.[key];
+        if (cur !== undefined && cur !== null && cur !== '') return;
+        if (!rec.customFields) rec.customFields = {};
+        rec.customFields[key] = backfillValue;
+        rec.updatedAt = now;
+        filled++;
+      });
+    }
+  }
+
+  const collection = _collectionForTable(tableKey);
+  if (filled) {
+    markDirty(collection);
+    saveData('settings', collection);
+  } else {
+    saveData('settings');
+  }
+  closeModal();
   renderColumnsSettings(document.getElementById('settingsContent'));
-  logActivity('Added custom column "' + name + '" to ' + tableKey, 'green', { actionType:'create', entityType:'config', entityName:'Column: ' + name, changes:[{field:'Table',oldValue:'',newValue:tableKey},{field:'Type',oldValue:'',newValue:type},{field:'Mandatory',oldValue:'',newValue:String(mandatory)}] });
-  showToast('Custom column added','success');
+  const changes = [{field:'Table',oldValue:'',newValue:tableKey},{field:'Type',oldValue:'',newValue:type},{field:'Mandatory',oldValue:'',newValue:String(mandatory)}];
+  if (filled) changes.push({field:'Backfilled records',oldValue:'',newValue:`${filled} set to "${backfillValue}"`});
+  logActivity('Added custom column "' + name + '" to ' + tableKey + (filled ? ` (backfilled ${filled} record${filled===1?'':'s'})` : ''), 'green', { actionType:'create', entityType:'config', entityName:'Column: ' + name, changes });
+  showToast(filled ? `Custom column added — ${filled.toLocaleString('en-IN')} existing record${filled===1?'':'s'} updated` : 'Custom column added','success');
 }
 
 function deleteColumn(tableKey, colKey, isCustom) {
