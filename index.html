@@ -3080,7 +3080,7 @@ const KEYRING_KEY = 'covervault.keyring.v1';
 const PROFILE_KEY = 'covervault.profile.v1';
 const DEVICE_KEY = 'covervault.device.v1';
 const PBKDF2_ITER = 210000;
-const APP_BUILD = '3.16.0';
+const APP_BUILD = '3.16.2';
 
 // Collections that participate in sync (record arrays, merged by id).
 const SYNC_COLLECTIONS = ['products', 'customers', 'suppliers', 'orders', 'activityLog'];
@@ -3232,6 +3232,7 @@ async function keyringRegister(dek, { username, displayName, pin, password, secu
   existing.displayName = displayName || existing.displayName || uname;
   existing.updatedAt = nowISO();
   if (pin) {
+    delete existing.quickPinDeclined;
     existing.wrapPin = await wrapDEK(dek, 'pin:' + pin);
     // An administrator's PIN exists only here, tied to the password it was
     // set under (_devicePinTag); a password change elsewhere retires it.
@@ -3331,20 +3332,22 @@ async function keyringSyncWithUsers() {
   const k = keyringLoad();
   const me = String((currentUser && currentUser.username) || '').trim().toLowerCase();
   const allowed = new Set();
-  let changed = 0, retiredMine = false;
+  let changed = 0;
 
   for (const u of users) {
     const uname = String(u.username || '').trim().toLowerCase();
     if (!uname || u.isActive === false) continue;
     allowed.add(uname);                       // active: keeps any access it already has
     let entry = k.users.find(x => x.username === uname);
+    // Lets the lock screen say "no quick PIN on this device" instead of a bare
+    // "incorrect" when an administrator types a PIN set on another device.
+    if (entry && !!entry.devicePinOnly !== _pinIsDeviceOnly(u)) { entry.devicePinOnly = _pinIsDeviceOnly(u); changed++; }
 
     // An administrator's PIN lives only on the device, tied to the password it
     // was set under. The password changed (here or elsewhere): retire it, so a
     // PIN someone may have seen stops opening this device too.
     if (entry && entry.wrapPin && _pinIsDeviceOnly(u) && entry.pinFor !== _devicePinTag(u)) {
       delete entry.wrapPin; delete entry.pinFor; entry.pinRetired = true; changed++;
-      if (uname === me) retiredMine = true;
     }
 
     const authHash = _acctPin(u) || _acctPass(u);
@@ -3368,7 +3371,7 @@ async function keyringSyncWithUsers() {
       if (entry.authHash) { delete entry.authHash; changed++; }  // pre-3.16 kept the raw hash here
       continue;
     }
-    if (!entry) { entry = { username: uname }; k.users.push(entry); }
+    if (!entry) { entry = { username: uname, devicePinOnly: _pinIsDeviceOnly(u) }; k.users.push(entry); }
     entry.displayName = u.displayName || entry.displayName || uname;
     delete entry.authHash;
     entry.autoFp = fp;                                        // re-wrap when either changes
@@ -3400,10 +3403,7 @@ async function keyringSyncWithUsers() {
     entry.updatedAt = nowISO();
     changed++;
   }
-  if (retiredMine) {
-    showToast('Your administrator password was changed, so your quick PIN no longer opens this device. ' +
-              'Next time, unlock with the password; you can then set a new quick PIN in Settings → Security.', 'warning', 12000);
-  }
+
 
   // A deleted or deactivated account must stop opening this device — including
   // one that had signed in here directly and so holds its own wrapPin. The only
@@ -3981,6 +3981,9 @@ function freshSyncState() {
 }
 let syncState = freshSyncState();
 let syncTimer = null, syncBusy = false, syncFail = 0, syncErrMsg = '', _syncAgain = false;
+// Bumped by every lock / logout. A sync started before it stops at its next
+// step instead of merging what it downloads into a locked, wiped app.
+let _sessionGen = 0;
 const SYNC_DEBOUNCE = 4000;
 const SYNC_BACKOFF = [15000, 60000, 300000];
 const SYNC_TIMEOUT_MS = 120000;           // a request that has not answered by now never will
@@ -4368,6 +4371,9 @@ async function _postSync(body, timeoutMs) {
   // Every request has a deadline. One that never answered used to leave
   // syncBusy set for the rest of the session, so nothing synced again until
   // the app was reloaded.
+  // Locked (or disconnected) since the caller started - a photo upload loop,
+  // say. With no address, fetch('') would post to the app's own page.
+  if (!syncUrl()) throw new Error('Sync is not connected');
   const ctl = typeof AbortController === 'function' ? new AbortController() : null;
   const timer = ctl ? setTimeout(() => ctl.abort(), timeoutMs || SYNC_TIMEOUT_MS) : null;
   try {
@@ -4403,6 +4409,7 @@ async function doSync(auto) {
   }
 
   syncBusy = true; _syncAgain = false; paintSync();
+  const gen = _sessionGen;
 
   try {
     syncState.cursors = syncState.cursors || {};
@@ -4410,6 +4417,7 @@ async function doSync(auto) {
     // Photos first. A record is held back until its photo is in Drive, so
     // uploading now lets those records go up in this same sync.
     const imgs = await uploadPendingImages();
+    if (gen !== _sessionGen) return;               // locked meanwhile
 
     const { outgoing, total, sent, oversized } = collectOutgoing();
     const markAfterCollect = syncState.pendingSeq || 0;
@@ -4438,6 +4446,11 @@ async function doSync(auto) {
         settings: (firstPass && settingsChanged) ? sanitizedSettings : null,
         settingsUpdatedAt: state.settings.editedAt || ''
       });
+      // Locked while waiting for the Sheet: the records in memory are gone and
+      // must stay gone. Whatever this pass sent is on the Sheet; the pending
+      // marks in the vault are untouched, so the next unlock re-sends it
+      // (harmless) and pulls from where the vault's cursors say.
+      if (gen !== _sessionGen) return;
       if (firstPass && Array.isArray(out.rejected)) rejected = out.rejected;
       firstPass = false;
 
@@ -4520,9 +4533,20 @@ async function doSync(auto) {
     // batch just applied — keep who can unlock this device in step with them.
     await keyringSyncWithUsers().catch(() => { /* never block a sync over this */ });
     await persistSyncState();
+    if (gen !== _sessionGen) return;
 
     syncBusy = false;
     if (settingsPulled && _reapplySettingsAfterPull()) return;   // account deactivated: now locked
+    // A locked device cannot hear about a PIN or password changed elsewhere
+    // until it is unlocked and syncs, so the OLD one opened it just now. It
+    // stops here, rather than keeping this session open until the next lock.
+    if (settingsPulled && await _sessionCredentialRetired()) {
+      const admin = currentUser && currentUser.role === 'admin';
+      lockApp(admin
+        ? 'Your password was changed on another device, so the password or quick PIN you just used no longer opens this one. Unlock with the new password; you can then set a quick PIN here again.'
+        : 'Your PIN or password was changed on another device. Unlock with the new one.');
+      return;
+    }
     paintSync();
     if (!auto) {
       showToast(total || pulled
@@ -4546,6 +4570,7 @@ async function doSync(auto) {
     else scheduleIdlePull();     // re-arm: the countdown is from the last sync
     maybeAutoCompact();                      // fire and forget; has its own cooldown
   } catch (e) {
+    if (gen !== _sessionGen) return;               // locked meanwhile: nothing to report or retry
     syncBusy = false;
     _syncAgain = false;
     syncErrMsg = (e && e.message) || 'failed';
@@ -6178,7 +6203,15 @@ async function _applyCredentials(u, { pin, password, rawAnswers, self } = {}) {
   }
   if (pin || password) await _registerDeviceLogin(u, { pin, password, rawAnswers });
   if (self && password && !pin && _pinIsDeviceOnly(u)) keyringRetagPin(u.username, _devicePinTag(u));
+  if (self && (pin || password)) _sessionCredential = pin || password;   // see _sessionCredentialRetired
   keyringDropWrapper(u.username, 'auto');          // rebuilt from the new verifier by keyringSyncWithUsers
+}
+
+/** Did the credential this session was opened with stop being the account's (changed on another device)? */
+async function _sessionCredentialRetired() {
+  const me = _myAccount();
+  if (!me || !_sessionCredential || !_hasCredential(me)) return false;
+  return !(await _accountAccepts(me, _sessionCredential));
 }
 
 /**
@@ -6451,11 +6484,13 @@ function updateAdminIndicator() {
 
 function logoutUser() {
   showConfirm('Logout', 'This locks the app. Your data stays encrypted on this device until you unlock again.', async () => {
-    logActivity(`User logged out: ${currentUser?.displayName || 'Unknown'}`, 'orange', { actionType:'logout', entityType:'login', entityName:currentUser?.displayName });
-    // Push anything queued before dropping the key, or it waits until next unlock.
-    if (syncOn() && pendingCount() > 0) { try { await doSync(true); } catch(e) {} }
-    _wipeSessionState();
-    showLoginScreen();
+    // Saved before the key goes (the write needs it) - a few milliseconds.
+    await logActivity(`User logged out: ${currentUser?.displayName || 'Unknown'}`, 'orange', { actionType:'logout', entityType:'login', entityName:currentUser?.displayName });
+    // Logging out used to wait for a whole sync first - 5-10 s on a phone,
+    // every time, because the "logged out" entry just written is itself
+    // something queued. Now it locks at once and what is queued goes up in the
+    // background (lockApp's `flush`).
+    lockApp('', true);
   }, 'Logout');
 }
 
@@ -6472,6 +6507,8 @@ function _wipeSessionState() {
   adminUnlocked = false;
   _sessionCredential = '';
   VAULT_KEY = null;                      // the key only ever lived in memory
+  _sessionGen++;                         // a sync still running stops at its next step
+  syncBusy = false; _syncAgain = false;
   clearTimeout(syncTimer);
   stopIdlePull();                        // no polling behind a lock screen
   for (const c of SYNC_COLLECTIONS) state[c] = [];
@@ -6501,10 +6538,24 @@ function _wipeSessionState() {
 }
 
 /** Lock now, without asking: after inactivity, or when this account was deactivated. */
-function lockApp(reason) {
+/**
+ * Lock: forget the key and everything decrypted, show the lock screen.
+ *
+ * `flush` (logout, idle lock): changes still queued are sent to the Sheet in
+ * the background - built from memory before the wipe, posted after it, the
+ * reply ignored. The page stays open behind the lock screen, so the request
+ * finishes by itself. The pending marks stay in the vault, so the next unlock
+ * sends anything that did not arrive (twice is harmless: merges keep the
+ * newest). Not for a lock caused by a revoked account or credential: that
+ * session's queued changes wait for someone who can unlock.
+ */
+function lockApp(reason, flush) {
   if (!VAULT_KEY) return;
+  const url = flush ? syncUrl() : '';
+  const body = flush ? _queuedSyncBody(true) : null;
   _wipeSessionState();
   showLoginScreen();
+  if (body) _postQueuedChanges(url, body);
   if (reason) {
     setTimeout(() => {
       const el = document.getElementById('loginError');
@@ -6531,7 +6582,7 @@ function _checkAutoLock() {
   if (!VAULT_KEY || wizardActive) { _lastActivityAt = Date.now(); return; }
   const mins = autoLockMins();
   if (mins && Date.now() - _lastActivityAt >= mins * 60000) {
-    lockApp(`Locked after ${mins} minute${mins === 1 ? '' : 's'} without use.`);
+    lockApp(`Locked after ${mins} minute${mins === 1 ? '' : 's'} without use.`, true);
   }
 }
 setInterval(_checkAutoLock, 30000);
@@ -9925,7 +9976,7 @@ function logActivity(message, color = 'blue', extra = {}) {
     entityName: extra.entityName || '',
     changes: extra.changes || [],
   });
-  saveData('activityLog');
+  return saveData('activityLog');
 }
 
 function renderActivityLog() {
@@ -14273,16 +14324,39 @@ function printCurrentPage() { /* no-op stub */ }
 // that queued changes reach the Sheet before the tab goes away — sendBeacon
 // survives unload where fetch does not.
 function _flushOnUnload() {
-  if (!VAULT_KEY || !syncOn() || pendingCount() === 0) return;
+  const body = _queuedSyncBody();
+  if (!body) return;
   try {
-    const { outgoing } = collectOutgoing();
-    const body = JSON.stringify({ secret: syncSecret(), action: 'sync',
-      generation: syncState.generation || 0, cursors: syncState.cursors || {},
-      changes: outgoing, settings: null, settingsUpdatedAt: state.settings.editedAt || '' });
     if (navigator.sendBeacon) {
       navigator.sendBeacon(syncUrl(), new Blob([body], { type: 'text/plain;charset=utf-8' }));
     }
   } catch (e) { /* the queue is persisted, so it will retry next unlock */ }
+}
+
+/**
+ * The request that sends what is queued, for when there is no time (or no key
+ * left) for a real sync - unload, logout, idle lock. null if nothing is queued.
+ * `withSettings`: include settings changed and not yet sent (not for the
+ * unload beacon, which is capped at 64 KB and would then send nothing at all).
+ */
+function _queuedSyncBody(withSettings) {
+  if (!VAULT_KEY || !syncOn() || pendingCount() === 0) return null;
+  try {
+    const { outgoing, total } = collectOutgoing();
+    const sendSettings = !!withSettings && _settingsFp() !== syncState.settingsFp;
+    if (!total && !sendSettings) return null;
+    return JSON.stringify({ secret: syncSecret(), action: 'sync',
+      generation: syncState.generation || 0, cursors: syncState.cursors || {},
+      changes: outgoing, settings: sendSettings ? settingsForSync() : null,
+      settingsUpdatedAt: state.settings.editedAt || '' });
+  } catch (e) { return null; }
+}
+
+function _postQueuedChanges(url, body) {
+  try {
+    fetch(url, { method: 'POST', redirect: 'follow', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body })
+      .catch(() => { /* offline: the next unlock sends it */ });
+  } catch (e) { /* same */ }
 }
 window.addEventListener('pagehide', _flushOnUnload);
 
@@ -15194,9 +15268,12 @@ async function processLogin() {
 
   if (!dek) {
     if (btn) { btn.disabled = false; btn.textContent = 'Unlock'; }
-    errEl.textContent = (entry.pinRetired && /^\d{4,8}$/.test(credential))
-      ? 'Your PIN no longer opens this device. Unlock with your password; you can then set a quick PIN in Settings → Security.'
-      : 'Incorrect PIN or password';
+    const digits = /^\d{4,8}$/.test(credential);
+    errEl.textContent = (digits && entry.pinRetired)
+      ? 'Your PIN no longer opens this device (your password was changed). Unlock with your password; you can then set a quick PIN here again.'
+      : (digits && entry.devicePinOnly && !entry.wrapPin)
+      ? 'This device has no quick PIN for you yet: an administrator’s PIN works only on the device where it was set. Unlock with your password, and the app will offer to add a PIN here.'
+      : 'Incorrect PIN or password. (Changed it on another device? Until this one has been unlocked and synced since, it still expects the previous one.)';
     errEl.style.display = '';
     const cred = document.getElementById('loginCredential');
     if (cred) { cred.value = ''; cred.focus(); }
@@ -15298,7 +15375,8 @@ let _loginKind = '';
  */
 function _askAdminPasswordIfNeeded() {
   const a = _myAccount();
-  if (!a || a.role !== 'admin' || (a.passwordStrong && !_acctPin(a))) return;
+  if (!a || a.role !== 'admin') return;
+  if (a.passwordStrong && !_acctPin(a)) { _offerQuickPin(); return; }
   if (document.getElementById('modalOverlay')?.classList.contains('active')) return;   // never over another form
   const usedPin = _loginKind === 'pin' || _loginKind === 'device-pin';
   openModal('Protect your administrator account', `
@@ -15321,6 +15399,57 @@ function _askAdminPasswordIfNeeded() {
     `<button class="btn btn-secondary" onclick="closeModal()">Not now</button>
      <button class="btn btn-primary" id="admPwSave" onclick="_saveAdminPassword()">Set password</button>`, 'sm');
   setTimeout(() => document.getElementById('admPw1')?.focus(), 100);
+}
+
+/**
+ * An administrator unlocked with the password on a device that has no quick
+ * PIN (a new device, or one whose PIN was retired by a password change). The
+ * PIN set on another device never comes here - by design - so offer one now.
+ */
+function _offerQuickPin() {
+  const a = _myAccount();
+  if (!a || !_pinIsDeviceOnly(a) || _loginKind !== 'password') return;
+  const e = keyringFind(a.username);
+  if (!e || e.wrapPin || e.quickPinDeclined) return;
+  if (document.getElementById('modalOverlay')?.classList.contains('active')) return;
+  openModal('Add a quick PIN for this device?', `
+    <p style="font-size:13px;color:var(--text-secondary);line-height:1.55;margin-bottom:12px">
+      An administrator's PIN works only on the device where it was set, so the one on your other
+      device does not open this one &mdash; that is what keeps it out of the Google Sheet. Choose a PIN
+      for this device (it can be the same number) and you will need the password here only after it changes.</p>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">Quick PIN (4-8 digits)</label>
+        <input class="form-control masked-input" type="text" id="qpPin" maxlength="8" inputmode="numeric" autocomplete="off"></div>
+      <div class="form-group"><label class="form-label">Confirm PIN</label>
+        <input class="form-control masked-input" type="text" id="qpPinC" maxlength="8" inputmode="numeric" autocomplete="off"></div>
+    </div>
+    <p id="qpErr" style="color:var(--color-danger);font-size:13px;display:none"></p>`,
+    `<button class="btn btn-secondary" onclick="_declineQuickPin()">Not on this device</button>
+     <button class="btn btn-secondary" onclick="closeModal()">Later</button>
+     <button class="btn btn-primary" id="qpSave" onclick="_saveQuickPin()">Set PIN</button>`, 'sm');
+  setTimeout(() => document.getElementById('qpPin')?.focus(), 100);
+}
+
+function _declineQuickPin() {
+  const k = keyringLoad(), me = String(currentUser?.username || '').toLowerCase();
+  const e = k.users.find(x => x.username === me);
+  if (e) { e.quickPinDeclined = true; keyringSave(k); }
+  closeModal();
+  showToast('You can add a quick PIN later in Settings → Security.', 'info');
+}
+
+async function _saveQuickPin() {
+  const pin = (document.getElementById('qpPin')?.value || '').trim();
+  const pinC = (document.getElementById('qpPinC')?.value || '').trim();
+  const err = m => { const e = document.getElementById('qpErr'); if (e) { e.textContent = m; e.style.display = ''; } };
+  if (!/^\d{4,8}$/.test(pin)) { err('The PIN must be 4-8 digits.'); return; }
+  if (pin !== pinC) { err('The two PINs do not match.'); return; }
+  const a = _myAccount();
+  if (!a) { closeModal(); return; }
+  await _applyCredentials(a, { pin, self: true });
+  await keyringSyncWithUsers().catch(() => {});
+  closeModal();
+  showToast('Quick PIN set for this device.', 'success');
 }
 
 async function _saveAdminPassword() {
@@ -18964,11 +19093,7 @@ async function completeWizard() {
       { actionType:'login', entityType:'login', entityName:user.displayName });
     showToast(`Welcome back, ${user.displayName}!`, 'success');
     if (syncOn()) doSync(true);
-    if (_pinIsDeviceOnly(user)) {
-      setTimeout(() => showToast('Tip: set a quick PIN for this device in Settings → Security, so you need the password only on new devices.', 'info', 9000), 1500);
-    } else {
-      setTimeout(_askAdminPasswordIfNeeded, 1500);   // joined just now: settings are the Sheet's
-    }
+    setTimeout(_askAdminPasswordIfNeeded, 1500);     // joined just now: settings are the Sheet's
     return;
   }
 
