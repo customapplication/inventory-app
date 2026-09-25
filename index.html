@@ -502,6 +502,27 @@ table { border-collapse: collapse; width: 100%; }
    looks like a blank screen with no error anywhere. */
 #page-dashboard.active, #page-reports.active, #page-settings.active,
 #page-whatsapp.active { display:block; }
+/* WhatsApp message builder: multi-select dropdowns that open in place */
+.wa-dd-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px; align-items:start; }
+.wa-dd .wa-dd-btn { display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%; min-height:40px; text-align:left; cursor:pointer; }
+.wa-dd .wa-dd-btn > span:first-child { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.wa-dd-panel { margin-top:6px; border:1px solid var(--border-color); border-radius:10px; padding:8px; background:var(--bg-card); box-shadow:var(--shadow-sm); }
+.wa-dd-list { max-height:260px; overflow:auto; margin:6px 0; -webkit-overflow-scrolling:touch; }
+.wa-dd-row { display:flex; align-items:center; gap:10px; padding:9px 6px; border-radius:6px; cursor:pointer; font-size:13px; }
+.wa-dd-row:hover { background:var(--bg-input); }
+.wa-dd-row input { width:16px; height:16px; flex:none; accent-color:var(--brand-primary); }
+.wa-dd-row .n { margin-left:auto; color:var(--text-muted); font-size:11px; }
+.wa-dd-empty { font-size:12px; color:var(--text-muted); margin:6px 2px; }
+.wa-genbar { position:sticky; bottom:0; z-index:5; margin-top:12px; padding:10px 12px; display:flex; gap:10px 14px; align-items:center; flex-wrap:wrap;
+  background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--border-radius); box-shadow:0 -4px 16px rgba(0,0,0,.08); }
+.wa-genbar p { flex:1 1 220px; margin:0; font-size:13px; }
+.wa-genbar .btn { flex:1 1 180px; justify-content:center; }
+.wa-presets { display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; padding:10px; background:var(--bg-input); border-radius:10px; }
+.wa-note { font-weight:400; color:var(--color-warning); font-size:11px; margin-left:6px; }
+.wa-dd-mode { display:flex; gap:14px; flex-wrap:wrap; font-size:13px; margin:2px 0 8px; }
+.wa-dd-mode label { display:flex; align-items:center; gap:6px; cursor:pointer; }
+.wa-opt { display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; }
+.wa-stale { background:var(--color-warning-bg); border-radius:8px; padding:10px 12px; font-size:13px; margin-bottom:10px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
 
 /* Data pages (Products, Customers, Suppliers, Sales, Purchases): card fills available space, table body scrolls */
 #page-products.active > .card,
@@ -2054,6 +2075,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
   <symbol id="icon-chat" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM7 9h10v2H7V9zm6 5H7v-2h6v2zm4-6H7V6h10v2z"/></symbol>
   <symbol id="icon-download" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></symbol>
   <symbol id="icon-upload" viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z"/></symbol>
+  <symbol id="icon-share" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></symbol>
   <symbol id="icon-copy" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></symbol>
   <symbol id="icon-eye" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></symbol>
   <symbol id="icon-refresh" viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></symbol>
@@ -3080,7 +3102,7 @@ const KEYRING_KEY = 'covervault.keyring.v1';
 const PROFILE_KEY = 'covervault.profile.v1';
 const DEVICE_KEY = 'covervault.device.v1';
 const PBKDF2_ITER = 210000;
-const APP_BUILD = '3.16.2';
+const APP_BUILD = '3.16.4';
 
 // Collections that participate in sync (record arrays, merged by id).
 const SYNC_COLLECTIONS = ['products', 'customers', 'suppliers', 'orders', 'activityLog'];
@@ -3837,10 +3859,7 @@ async function saveData(...collections) {
     }
 
     // meta stays device-local: nextIds and UI position must not sync.
-    tasks.push(vaultWrite('meta', {
-      nextIds: state.nextIds, sortState: state.sortState,
-      currentPage: state.currentPage, dashboardDateRange: state.dashboardDateRange
-    }));
+    tasks.push(vaultWrite('meta', _vaultMeta()));
 
     if (_markersUnsaved) { realChanges++; _markersUnsaved = false; }
     if (realChanges) {
@@ -3869,6 +3888,12 @@ async function saveData(...collections) {
   if (realChanges || settingsQueued) scheduleSync();
 }
 
+/** What this device keeps for itself (encrypted, never synced): id counters, screen position, last WhatsApp filters. */
+function _vaultMeta() {
+  return { nextIds: state.nextIds, sortState: state.sortState, currentPage: state.currentPage,
+           dashboardDateRange: state.dashboardDateRange, waLastFilters: state.waLastFilters || null };
+}
+
 /** Load and decrypt everything. Requires VAULT_KEY to already be set. */
 async function loadData() {
   if (!VAULT_KEY) return;
@@ -3888,6 +3913,7 @@ async function loadData() {
       if (meta.sortState) state.sortState = meta.sortState;
       if (meta.currentPage) state.currentPage = meta.currentPage;
       if (meta.dashboardDateRange) state.dashboardDateRange = meta.dashboardDateRange;
+      state.waLastFilters = meta.waLastFilters || null;
     }
     _tombstones = Object.assign(emptyTombstones(), tombs || {});
     if (sst) syncState = Object.assign(syncState, sst);
@@ -6519,6 +6545,8 @@ function _wipeSessionState() {
   _archiveView = { active: false, orders: [], loadedFor: '' };
   columnFilters = {};
   _credCache.clear(); _loginKind = '';
+  waFilters = waEmptyFilters(); _waGenerated = null; _waOpenDD = '';   // brand names, and a message built from the data
+  _waRestored = false; _waPresetId = ''; state.waLastFilters = null;      // reloaded from the vault at the next unlock
   if (typeof _bulkPrintSelection !== 'undefined') _bulkPrintSelection.clear();
   for (const t of ['products', 'customers', 'suppliers']) invalidateSearchIndex(t);
   wizardActive = false;
@@ -14812,35 +14840,90 @@ const WA_DEFAULTS = {
   hindi: '',
   showQty: false,
   qtyLabel: 'pcs',
-  markNew: false,
+  showColors: false,        // "iPhone 15 – Black, Blue" (the colours in THIS message)
+  markNew: false,           // 🆕 for products added in the last newDays days
   newDays: 30,
+  newRestock: false,        // ...or received on a completed purchase in that window
+  newMarks: { brand: [], model: [], color: [], product: [] },   // always 🆕, window or not
+  templates: [],            // other wordings: [{ id, name, title, link, english, hindi }]
+  presets: [],              // saved filters: [{ id, name, filters }]
 };
 
-// Draft filter state for the page. Not persisted — it is a scratchpad.
-let waFilters = { search: '', brand: [], model: [], color: [], category: [],
-                  costMin: '', costMax: '', stock: 'in' };
+// Draft filter state for the page. Kept in memory, remembered on this device
+// (encrypted, in the vault's device-local `meta`) each time a message is
+// generated or a saved filter applied, and cleared by a lock.
+let waFilters = waEmptyFilters();
+function waEmptyFilters() {
+  return { search: '', brand: [], model: [], color: [], category: [],
+           not: { brand: false, model: false, color: false, category: false },   // true: "all except these"
+           costMin: '', costMax: '', stock: 'in', template: '' };                // template '' = the main wording
+}
+/** Any stored filter object (a saved filter, the remembered one) made complete. */
+function waNormFilters(f) {
+  const e = waEmptyFilters();
+  const out = Object.assign(e, JSON.parse(JSON.stringify(f || {})));
+  out.not = Object.assign(waEmptyFilters().not, (f && f.not) || {});
+  for (const k of ['brand', 'model', 'color', 'category']) if (!Array.isArray(out[k])) out[k] = [];
+  return out;
+}
 
+// The four list filters, in the order they appear.
+const WA_FIELDS = [
+  { key: 'brand',    field: 'brand',    label: 'Brand',    plural: 'brands' },
+  { key: 'category', field: 'category', label: 'Category', plural: 'categories' },
+  { key: 'color',    field: 'color',    label: 'Colour',   plural: 'colours' },
+  { key: 'model',    field: 'model',    label: 'Model',    plural: 'models' },
+];
+// "Always mark as new" lists (synced, in waCfg().newMarks).
+const WA_MARKS = [
+  { id: 'nm_brand',   key: 'brand',   label: 'Brands',   plural: 'brands' },
+  { id: 'nm_model',   key: 'model',   label: 'Models',   plural: 'models' },
+  { id: 'nm_color',   key: 'color',   label: 'Colours',  plural: 'colours' },
+  { id: 'nm_product', key: 'product', label: 'Products', plural: 'products' },
+];
+
+// The message as last generated, or null. The page does not rewrite it behind
+// the person's back: when the filters or options change, it says so and asks
+// for Generate again, rather than letting an out-of-date list be sent.
+let _waGenerated = null;
+let _waOpenDD = '', _waDDOpts = {}, _waPresetId = '', _waRestored = false, _waMarksTimer = null;
+
+/** The saved settings merged over the defaults - a copy, safe to change. */
 function waCfg() {
-  return Object.assign({}, WA_DEFAULTS, state.settings.whatsapp || {});
+  const c = JSON.parse(JSON.stringify(Object.assign({}, WA_DEFAULTS, state.settings.whatsapp || {})));
+  c.newMarks = Object.assign({ brand: [], model: [], color: [], product: [] }, c.newMarks || {});
+  if (!Array.isArray(c.templates)) c.templates = [];
+  if (!Array.isArray(c.presets)) c.presets = [];
+  return c;
+}
+async function waSaveCfg(cfg) { state.settings.whatsapp = cfg; await saveData('settings'); }
+
+/** The wording used for the message: the chosen saved wording, or the main one. */
+function waWording(cfg) {
+  const t = waFilters.template && cfg.templates.find(x => x.id === waFilters.template);
+  const src = t || cfg;
+  return { title: src.title || '', link: src.link || '', english: src.english || '', hindi: src.hindi || '', name: t ? t.name : '' };
 }
 
-/** Distinct values of a product field, blanks dropped, natural order kept. */
-function waValues(field) {
-  const seen = new Set();
-  for (const p of (state.products || [])) {
-    const v = (p && p[field] != null ? String(p[field]) : '').trim();
-    if (v) seen.add(v);
-  }
-  return [...seen].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
-}
+const _waCmp = (a, b) => String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
+const _waLc = s => String(s == null ? '' : s).trim().toLowerCase();
 
-/** Products passing the current filters. */
-function waMatchingProducts() {
+/**
+ * Products passing the current filters. `except` leaves out one list filter:
+ * a dropdown offers the values that exist under all the OTHER filters, so
+ * choosing Apple narrows the Model list to Apple's models. A list set to
+ * "all except these" drops the ticked values instead of keeping only them.
+ */
+function waMatchingProducts(except) {
   const f = waFilters;
   const q = f.search.trim().toLowerCase();
   const min = f.costMin === '' ? null : Number(f.costMin);
   const max = f.costMax === '' ? null : Number(f.costMax);
-  const listed = (arr, v) => !arr.length || arr.includes(String(v || '').trim());
+  const listed = (key, v) => {
+    if (key === except || !f[key].length) return true;
+    const hit = f[key].includes(String(v || '').trim());
+    return f.not[key] ? !hit : hit;
+  };
   const canCost = canAccess('products', 'viewPrices');
 
   return (state.products || []).filter(p => {
@@ -14848,10 +14931,10 @@ function waMatchingProducts() {
     const stock = Number(p.inStock) || 0;
     if (f.stock === 'in' && stock <= 0) return false;
     if (f.stock === 'out' && stock > 0) return false;
-    if (!listed(f.brand, p.brand)) return false;
-    if (!listed(f.model, p.model)) return false;
-    if (!listed(f.color, p.color)) return false;
-    if (!listed(f.category, p.category)) return false;
+    if (!listed('brand', p.brand)) return false;
+    if (!listed('model', p.model)) return false;
+    if (!listed('color', p.color)) return false;
+    if (!listed('category', p.category)) return false;
     // Without "See Prices" the cost range is not offered, and not applied -
     // narrowing it down a rupee at a time would otherwise reveal every cost.
     const cost = Number(p.purchasePrice) || 0;
@@ -14866,26 +14949,90 @@ function waMatchingProducts() {
   });
 }
 
-/** Is this product recent enough to earn the 🆕 marker? */
-function waIsNew(p, days) {
-  const t = Date.parse(p.createdAt || '');
-  if (isNaN(t)) return false;
-  return (Date.now() - t) <= days * 86400e3;
+/** A filter dropdown's choices: each value with how many product rows have it under the other filters. */
+function waOptions(key) {
+  const field = WA_FIELDS.find(x => x.key === key).field;
+  const counts = new Map();
+  for (const p of waMatchingProducts(key)) {
+    const v = String(p[field] == null ? '' : p[field]).trim();
+    if (v) counts.set(v, (counts.get(v) || 0) + 1);
+  }
+  // Chosen earlier but matching nothing now: still listed, so it can be unticked.
+  for (const v of waFilters[key]) if (!counts.has(v)) counts.set(v, 0);
+  return [...counts].map(([value, count]) => ({ value, text: value, n: count })).sort((a, b) => _waCmp(a.value, b.value));
+}
+
+/** "Always new" choices: every value in the catalogue (not only this message's). */
+function waMarkOptions(key) {
+  const marked = waCfg().newMarks[key] || [];
+  if (key === 'product') {
+    const byId = new Map((state.products || []).map(p => [String(p.id), p]));
+    const out = [...byId].map(([id, p]) => ({ value: id, text: (p.name || '(no name)') + (p.color ? ' – ' + p.color : '') }));
+    for (const id of marked) if (!byId.has(String(id))) out.push({ value: String(id), text: '(deleted product)' });
+    return out.sort((a, b) => _waCmp(a.text, b.text));
+  }
+  const seen = new Map();
+  for (const p of state.products || []) {
+    const v = String(p[key] == null ? '' : p[key]).trim();
+    if (v && !seen.has(_waLc(v))) seen.set(_waLc(v), v);
+  }
+  for (const v of marked) if (!seen.has(_waLc(v))) seen.set(_waLc(v), v);
+  return [...seen.values()].map(v => ({ value: v, text: v })).sort((a, b) => _waCmp(a.value, b.value));
+}
+
+/**
+ * Which products earn the 🆕 marker, decided once per message.
+ *   - Always: products, models, brands and colours ticked under "Always mark as
+ *     new" (whatever the window says, and even with the window switched off).
+ *   - With the window on: products created in the last newDays days, and - if
+ *     "restocks count" is on - products received on a COMPLETED purchase order
+ *     dated in that window (a restocked old model is news to customers too).
+ */
+function waNewChecker(cfg) {
+  const m = cfg.newMarks;
+  const setOf = k => new Set((m[k] || []).map(_waLc));
+  const mb = setOf('brand'), mm = setOf('model'), mc = setOf('color');
+  const mp = new Set((m.product || []).map(String));
+  const since = Date.now() - (Number(cfg.newDays) || 30) * 86400e3;
+  let lastIn = null;
+  if (cfg.markNew && cfg.newRestock) {
+    lastIn = new Map();
+    for (const o of state.orders || []) {
+      if (!o || o.type !== 'Purchase' || o.status !== 'Completed') continue;
+      const t = Date.parse(o.date || o.createdAt || '');
+      if (isNaN(t)) continue;
+      for (const it of o.items || []) {
+        const k = String(it.productId);
+        if (!lastIn.has(k) || lastIn.get(k) < t) lastIn.set(k, t);
+      }
+    }
+  }
+  return p => {
+    if (mp.has(String(p.id)) || mb.has(_waLc(p.brand)) || mm.has(_waLc(p.model)) || mc.has(_waLc(p.color))) return true;
+    if (!cfg.markNew) return false;
+    const c = Date.parse(p.createdAt || '');
+    if (!isNaN(c) && c >= since) return true;
+    const t = lastIn && lastIn.get(String(p.id));
+    return !!(t && t >= since);
+  };
 }
 
 /**
  * Group matching products into brand -> [model lines].
  *
  * Grouping key is the brand; the line is the model (falling back to the product
- * name when a product carries no model, so nothing silently disappears).
+ * name when a product carries no model, so nothing silently disappears). Brands
+ * and models come out in A-Z order, numbers counted as numbers (iPhone 13,
+ * iPhone 13 Pro, iPhone 14 ...). A product without a brand goes under OTHER, last.
  */
-function waGroupedModels() {
-  const cfg = waCfg();
+function waGroupedModels(cfg) {
+  cfg = cfg || waCfg();
+  const isNew = waNewChecker(cfg);
   // Grouped ignoring case and repeated spaces: "Samsung" and "SAMSUNG " are one
   // brand, or the message printed two identical *SAMSUNG* headings. The first
   // spelling met is the one shown.
   const norm = s => String(s || '').trim().replace(/\s+/g, ' ').toLowerCase();
-  const groups = new Map();                  // brand label -> Map(model label -> {qty, isNew})
+  const groups = new Map();                  // brand label -> Map(model label -> {qty, isNew, colors})
   const brandLabel = new Map(), modelLabel = new Map();
   for (const p of waMatchingProducts()) {
     const brandRaw = (p.brand || '').trim().replace(/\s+/g, ' ') || 'OTHER';
@@ -14899,33 +15046,38 @@ function waGroupedModels() {
     const model = modelLabel.get(mk);
     if (!groups.has(brand)) groups.set(brand, new Map());
     const models = groups.get(brand);
-    const cur = models.get(model) || { qty: 0, isNew: false };
+    const cur = models.get(model) || { qty: 0, isNew: false, colors: new Map() };
     cur.qty += Number(p.inStock) || 0;
     // A model counts as new if ANY of its colour variants is new.
-    if (cfg.markNew && waIsNew(p, cfg.newDays)) cur.isNew = true;
+    if (isNew(p)) cur.isNew = true;
+    const col = String(p.color || '').trim().replace(/\s+/g, ' ');
+    if (col && !cur.colors.has(norm(col))) cur.colors.set(norm(col), col);
     models.set(model, cur);
   }
-  return groups;
+  const brands = [...groups].sort(([a], [b]) => (a === 'OTHER') - (b === 'OTHER') || _waCmp(a, b));
+  return new Map(brands.map(([b, models]) => [b, new Map([...models].sort(([x], [y]) => _waCmp(x, y)))]));
 }
 
 function waBuildMessage() {
   const cfg = waCfg();
-  const groups = waGroupedModels();
+  const w = waWording(cfg);
+  const groups = waGroupedModels(cfg);
   const out = [];
 
-  if (cfg.title.trim()) out.push('*' + cfg.title.trim() + '*', '');
+  if (w.title.trim()) out.push('*' + w.title.trim() + '*', '');
 
   for (const [brand, models] of groups) {
     out.push('', '*' + brand.toUpperCase() + '*');
     for (const [model, info] of models) {
       let line = model;
+      if (cfg.showColors && info.colors.size) line += ' – ' + [...info.colors.values()].sort(_waCmp).join(', ');
       if (cfg.showQty) line += ` (${info.qty} ${cfg.qtyLabel})`;
       if (info.isNew) line += '🆕';
       out.push(line);
     }
   }
 
-  const tail = [cfg.link, cfg.english, cfg.hindi].map(s => (s || '').trim()).filter(Boolean);
+  const tail = [w.link, w.english, w.hindi].map(s => (s || '').trim()).filter(Boolean);
   if (tail.length) out.push('', ...tail.flatMap(t => [t, '']));
 
   return out.join('\n').replace(/\n{3,}/g, '\n\n').trim();
@@ -14933,36 +15085,338 @@ function waBuildMessage() {
 
 function waStats() {
   const groups = waGroupedModels();
-  let models = 0;
-  for (const m of groups.values()) models += m.size;
-  return { brands: groups.size, models, products: waMatchingProducts().length };
+  let models = 0, fresh = 0;
+  for (const m of groups.values()) { models += m.size; for (const i of m.values()) if (i.isNew) fresh++; }
+  return { brands: groups.size, models, fresh, products: waMatchingProducts().length };
 }
 
-/* --------------------------------- UI ---------------------------------- */
+/* ------------------------------ dropdowns ------------------------------- */
 
-function waChips(field, key) {
-  const values = waValues(field);
-  if (!values.length) return '<p style="font-size:12px;color:var(--text-muted);margin:4px 0 0">None yet</p>';
-  const sel = waFilters[key];
-  return `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;max-height:140px;overflow:auto">${
-    values.map(v => `<button type="button" onclick="waToggle('${key}',${JSON.stringify(v).replace(/"/g,'&quot;')})"
-      style="min-width:38px;padding:7px 11px;border-radius:16px;border:1px solid;cursor:pointer;font-size:12px;line-height:1;
-             ${sel.includes(v) ? _TIDY_CHIP_ON : _TIDY_CHIP_OFF}">${escapeHtml(v)}</button>`).join('')}</div>`;
+/**
+ * Every multi-select dropdown on the page, by id: where its choices come from
+ * and where its ticks go. The four filters (brand, category, color, model)
+ * also have "only these / all except these"; the "always new" lists (nm_*)
+ * save to the synced settings.
+ */
+function waDD(id) {
+  const f = WA_FIELDS.find(x => x.key === id);
+  if (f) return {
+    plural: f.plural, modes: true, none: 'All ' + f.plural,
+    options: () => waOptions(id),
+    get: () => waFilters[id], set: a => { waFilters[id] = a; },
+    not: () => !!waFilters.not[id], setNot: v => { waFilters.not[id] = v; },
+    changed: waFiltersChanged,
+  };
+  const m = WA_MARKS.find(x => x.id === id);
+  if (m) return {
+    plural: m.plural, modes: false, none: 'None',
+    options: () => waMarkOptions(m.key),
+    get: () => waCfg().newMarks[m.key] || [], set: a => waSetMarks(m.key, a),
+    not: () => false, setNot: () => {},
+    changed: waMarksChanged,
+  };
+  return null;
 }
 
-function waToggle(key, value) {
-  const cur = waFilters[key];
-  waFilters[key] = cur.includes(value) ? cur.filter(x => x !== value) : [...cur, value];
-  renderWhatsApp();
+/** "All brands", "Apple, Samsung", "Apple, Samsung +3" or "All except iPhone 13". */
+function waDDLabel(id) {
+  const d = waDD(id), sel = d.get();
+  if (!sel.length) return d.none;
+  let names = sel;
+  if (id === 'nm_product') {
+    const byId = new Map((state.products || []).map(p => [String(p.id), p]));
+    names = sel.map(v => { const p = byId.get(String(v)); return p ? (p.name || '?') + (p.color ? ' – ' + p.color : '') : '(deleted product)'; });
+  }
+  const list = names.length <= 2 ? names.join(', ') : names.slice(0, 2).join(', ') + ' +' + (names.length - 2);
+  return d.not() ? 'All except ' + list : list;
 }
 
-function waSet(key, value) { waFilters[key] = value; renderWhatsApp(); }
+/**
+ * A multi-select dropdown: a button that opens a list of tick boxes, with a
+ * search box once the list is long. It opens in place (pushing the page down)
+ * rather than floating, because cards clip what sticks out of them and a
+ * floating list is awkward on a phone. Ticking applies at once; the page is
+ * not rebuilt, so the list keeps its scroll position and search.
+ */
+function waDropdownHTML(id, label, disabled) {
+  return `<div class="wa-dd" data-wa-dd="${id}">
+    <label class="form-label">${label}</label>
+    <button type="button" class="form-control wa-dd-btn" id="waDDBtn_${id}" onclick="waToggleDD('${id}')" aria-expanded="false" ${disabled ? 'disabled' : ''}>
+      <span id="waDDLabel_${id}">${escapeHtml(waDDLabel(id))}</span><span aria-hidden="true" style="opacity:.6">&#9662;</span></button>
+    <div class="wa-dd-panel" id="waDDPanel_${id}" hidden></div>
+  </div>`;
+}
+
+function waToggleDD(id) {
+  const wasOpen = _waOpenDD === id;
+  waCloseDD();
+  if (wasOpen) return;
+  const panel = document.getElementById('waDDPanel_' + id);
+  const d = waDD(id);
+  if (!panel || !d) return;
+  const opts = _waDDOpts[id] = d.options();
+  const sel = new Set(d.get().map(String));
+  const not = d.not();
+  panel.innerHTML = `
+    ${d.modes ? `<div class="wa-dd-mode">
+      <label><input type="radio" name="waMode_${id}" ${!not ? 'checked' : ''} onchange="waSetMode('${id}', false)"> Only these</label>
+      <label><input type="radio" name="waMode_${id}" ${not ? 'checked' : ''} onchange="waSetMode('${id}', true)"> All except these</label>
+    </div>` : ''}
+    ${opts.length > 8 ? `<input class="form-control" type="search" placeholder="Search ${escapeHtml(d.plural)}" oninput="waDDSearch('${id}', this.value)" style="margin-bottom:6px">` : ''}
+    <div style="display:flex;gap:8px;justify-content:space-between">
+      <button type="button" class="btn btn-secondary btn-sm" onclick="waDDAll('${id}')">Select all shown</button>
+      <button type="button" class="btn btn-secondary btn-sm" onclick="waDDClear('${id}')">Clear</button>
+    </div>
+    <div class="wa-dd-list">${opts.length ? opts.map((o, i) => `
+      <label class="wa-dd-row" data-t="${escapeHtml(String(o.text).toLowerCase())}">
+        <input type="checkbox" ${sel.has(String(o.value)) ? 'checked' : ''} onchange="waPick('${id}', ${i}, this.checked)">
+        <span>${escapeHtml(o.text)}</span>${o.n != null ? `<span class="n">${o.n}</span>` : ''}</label>`).join('')
+      : `<p class="wa-dd-empty">${d.modes ? 'Nothing here matches the other filters.' : 'No products yet.'}</p>`}</div>
+    <button type="button" class="btn btn-primary btn-sm" style="width:100%" onclick="waCloseDD()">Done</button>`;
+  panel.hidden = false;
+  document.getElementById('waDDBtn_' + id)?.setAttribute('aria-expanded', 'true');
+  _waOpenDD = id;
+}
+
+function waCloseDD() {
+  if (!_waOpenDD) return;
+  const panel = document.getElementById('waDDPanel_' + _waOpenDD);
+  if (panel) { panel.hidden = true; panel.innerHTML = ''; }
+  document.getElementById('waDDBtn_' + _waOpenDD)?.setAttribute('aria-expanded', 'false');
+  _waOpenDD = '';
+}
+
+// A tap anywhere outside an open dropdown closes it.
+document.addEventListener('click', e => {
+  if (_waOpenDD && e.target && e.target.closest && !e.target.closest('.wa-dd')) waCloseDD();
+}, true);
+
+function waPick(id, i, checked) {
+  const d = waDD(id), o = (_waDDOpts[id] || [])[i];
+  if (!d || !o) return;
+  const cur = d.get().filter(v => String(v) !== String(o.value));
+  d.set(checked ? [...cur, o.value] : cur);
+  d.changed(id);
+}
+
+function waSetMode(id, not) {
+  const d = waDD(id);
+  if (!d) return;
+  d.setNot(!!not);
+  d.changed(id);
+}
+
+function waDDSearch(id, q) {
+  const needle = String(q || '').trim().toLowerCase();
+  document.querySelectorAll(`#waDDPanel_${id} .wa-dd-row`).forEach(r => {
+    r.style.display = !needle || r.dataset.t.includes(needle) ? '' : 'none';
+  });
+}
+
+function waDDAll(id) {
+  const d = waDD(id);
+  const cur = d.get().slice();
+  document.querySelectorAll(`#waDDPanel_${id} .wa-dd-row`).forEach((r, i) => {
+    if (r.style.display === 'none') return;
+    const cb = r.querySelector('input'), o = _waDDOpts[id][i];
+    if (cb && o && !cb.checked) { cb.checked = true; if (!cur.map(String).includes(String(o.value))) cur.push(o.value); }
+  });
+  d.set(cur);
+  d.changed(id);
+}
+
+function waDDClear(id) {
+  document.querySelectorAll(`#waDDPanel_${id} .wa-dd-row input`).forEach(cb => { cb.checked = false; });
+  const d = waDD(id);
+  d.set([]);
+  d.changed(id);
+}
+
+/* ------------------------------- filters -------------------------------- */
 
 function waClearFilters() {
-  waFilters = { search: '', brand: [], model: [], color: [], category: [],
-                costMin: '', costMax: '', stock: 'in' };
+  const template = waFilters.template;
+  waFilters = waEmptyFilters();
+  waFilters.template = template;          // the wording is not a filter
+  _waPresetId = '';
   renderWhatsApp();
 }
+
+/** A filter changed: update the dropdown labels, the match count and the message's up-to-date state - not the whole page. */
+function waFiltersChanged() {
+  for (const d of WA_FIELDS) {
+    const l = document.getElementById('waDDLabel_' + d.key);
+    if (l) l.textContent = waDDLabel(d.key);
+  }
+  const s = document.getElementById('waSummary');
+  if (s) s.innerHTML = waSummaryHTML();
+  waPresetNote();
+  waRenderResult();
+}
+
+function waSummaryHTML() {
+  const s = waStats();
+  if (!s.models) return '<span style="color:var(--color-warning)">Nothing matches these filters.</span>';
+  const n = (v, w) => v.toLocaleString('en-IN') + ' ' + w + (v === 1 ? '' : 's');
+  return `The message will list <strong>${n(s.models, 'model')}</strong> across ${n(s.brands, 'brand')}` +
+         `${s.fresh ? `, ${s.fresh} marked 🆕` : ''} (from ${n(s.products, 'product row')}).`;
+}
+
+/** This device remembers the last filters used (encrypted, device-local; see _vaultMeta). */
+function waRememberFilters() {
+  state.waLastFilters = JSON.parse(JSON.stringify(waFilters));
+  if (VAULT_KEY) vaultWrite('meta', _vaultMeta()).catch(() => {});
+}
+
+/* ---------------------------- saved filters ----------------------------- */
+// Named filter sets, saved in the synced settings so every device has them.
+// Saving needs the WhatsApp "Edit" right; anyone who can open the page can apply one.
+
+function waPresetOptionsHTML() {
+  const ps = waCfg().presets.slice().sort((a, b) => _waCmp(a.name, b.name));
+  return `<option value="">${ps.length ? 'Choose a saved filter…' : 'No saved filters yet'}</option>` +
+    ps.map(p => `<option value="${escapeHtml(p.id)}" ${p.id === _waPresetId ? 'selected' : ''}>${escapeHtml(p.name)}</option>`).join('');
+}
+
+function waApplyPreset(id) {
+  const p = waCfg().presets.find(x => x.id === id);
+  if (!p) { _waPresetId = ''; renderWhatsApp(); return; }
+  waFilters = waNormFilters(p.filters);
+  _waPresetId = id;
+  waRememberFilters();
+  renderWhatsApp();
+  showToast(`Applied "${p.name}"`, 'success');
+}
+
+/** "(changed since saved)" next to a saved filter whose filters were then altered. */
+function waPresetNote() {
+  const el = document.getElementById('waPresetNote');
+  if (!el) return;
+  const p = _waPresetId && waCfg().presets.find(x => x.id === _waPresetId);
+  el.textContent = p && JSON.stringify(waNormFilters(p.filters)) !== JSON.stringify(waNormFilters(waFilters)) ? 'changed since saved' : '';
+}
+
+function waSavePresetAs() {
+  if (!canAccess('whatsapp', 'edit')) { showToast('You cannot save filters', 'error'); return; }
+  const cur = _waPresetId && waCfg().presets.find(x => x.id === _waPresetId);
+  openModal('Save these filters', `
+    <p style="font-size:13px;color:var(--text-secondary);margin:0 0 10px">Saved with your data, so every device can apply it.
+      The chosen wording is saved with it.</p>
+    <div class="form-group"><label class="form-label">Name</label>
+      <input class="form-control" id="waPresetName" maxlength="60" value="${escapeHtml(cur ? cur.name : '')}" placeholder="e.g. Bumper cases – Apple &amp; Samsung"></div>
+    <p style="font-size:12px;color:var(--text-muted);margin:0">Using a name that already exists replaces that saved filter.</p>`,
+    `<button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+     <button class="btn btn-primary" onclick="_waSavePreset()">Save</button>`, 'sm');
+  setTimeout(() => document.getElementById('waPresetName')?.focus(), 100);
+}
+
+async function _waSavePreset() {
+  const name = (document.getElementById('waPresetName')?.value || '').trim();
+  if (!name) { showToast('Give it a name', 'error'); return; }
+  const cfg = waCfg();
+  let p = cfg.presets.find(x => _waLc(x.name) === _waLc(name));
+  if (!p) { p = { id: 'wp' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name }; cfg.presets.push(p); }
+  p.name = name;
+  p.filters = JSON.parse(JSON.stringify(waFilters));
+  await waSaveCfg(cfg);
+  _waPresetId = p.id;
+  waRememberFilters();
+  closeModal();
+  showToast(`Saved "${name}"`, 'success');
+  renderWhatsApp();
+}
+
+async function waUpdatePreset() {
+  if (!canAccess('whatsapp', 'edit')) { showToast('You cannot save filters', 'error'); return; }
+  const cfg = waCfg(), p = cfg.presets.find(x => x.id === _waPresetId);
+  if (!p) { waSavePresetAs(); return; }
+  p.filters = JSON.parse(JSON.stringify(waFilters));
+  await waSaveCfg(cfg);
+  showToast(`Updated "${p.name}"`, 'success');
+  renderWhatsApp();
+}
+
+function waDeletePreset() {
+  if (!canAccess('whatsapp', 'edit')) { showToast('You cannot delete saved filters', 'error'); return; }
+  const p = waCfg().presets.find(x => x.id === _waPresetId);
+  if (!p) return;
+  showConfirm('Delete saved filter', `Delete "${p.name}" on every device? The filters on screen stay as they are.`, async () => {
+    const cfg = waCfg();
+    cfg.presets = cfg.presets.filter(x => x.id !== p.id);
+    await waSaveCfg(cfg);
+    _waPresetId = '';
+    showToast('Saved filter deleted', 'success');
+    renderWhatsApp();
+  }, 'Delete');
+}
+
+/* ---------------------------- always "new" ------------------------------ */
+
+/** Tick or untick an "always new" value: in memory at once, saved (synced) a moment later. */
+function waSetMarks(key, arr) {
+  const cfg = waCfg();
+  cfg.newMarks[key] = arr.map(String);
+  state.settings.whatsapp = cfg;
+  clearTimeout(_waMarksTimer);
+  _waMarksTimer = setTimeout(() => { if (VAULT_KEY) saveData('settings'); }, 700);
+}
+
+function waMarksChanged() {
+  for (const m of WA_MARKS) {
+    const l = document.getElementById('waDDLabel_' + m.id);
+    if (l) l.textContent = waDDLabel(m.id);
+  }
+  const s = document.getElementById('waSummary');
+  if (s) s.innerHTML = waSummaryHTML();
+  waRenderResult();
+}
+
+function waClearMarks() {
+  if (!canAccess('whatsapp', 'edit')) return;
+  showConfirm('Clear "always new"', 'Stop marking all of these as new, on every device? The day window keeps working.', async () => {
+    const cfg = waCfg();
+    cfg.newMarks = { brand: [], model: [], color: [], product: [] };
+    await waSaveCfg(cfg);
+    renderWhatsApp();
+  }, 'Clear');
+}
+
+/* ------------------------------- message -------------------------------- */
+
+function waGenerate() {
+  waCloseDD();
+  if (!waStats().models) { showToast('Nothing matches these filters, so there is nothing to send', 'warning'); return; }
+  _waGenerated = { text: waBuildMessage() };
+  waRememberFilters();
+  waRenderResult();
+  document.getElementById('waResultCard')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function waRenderResult() {
+  const el = document.getElementById('waResult');
+  if (!el) return;
+  if (!_waGenerated) {
+    el.innerHTML = `<p style="font-size:13px;color:var(--text-secondary);margin:0">Choose what to advertise above, then tap
+      <strong>Generate message</strong>. You can then send it straight to WhatsApp or copy it.</p>`;
+    return;
+  }
+  const text = _waGenerated.text;
+  const stale = waBuildMessage() !== text;
+  const len = text.length;
+  el.innerHTML = `
+    ${stale ? `<div class="wa-stale">The filters, options, wording or stock changed since this message was generated.
+      <button class="btn btn-primary btn-sm" onclick="waGenerate()">Generate again</button></div>` : ''}
+    <textarea id="waPreview" class="form-control" rows="16" readonly
+      style="white-space:pre-wrap;font-size:13px;line-height:1.5${stale ? ';opacity:.55' : ''}">${escapeHtml(text)}</textarea>
+    <p style="font-size:12px;margin:6px 0 10px;color:${len > 65000 ? 'var(--color-danger)' : 'var(--text-muted)'}">
+      ${len.toLocaleString('en-IN')} characters${len > 65000 ? ' — WhatsApp sends at most 65,536 in one message; narrow the filters' : ''}</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-primary" onclick="waSend()" ${stale ? 'disabled' : ''}><svg><use href="#icon-share"/></svg> Send to WhatsApp</button>
+      <button class="btn btn-secondary" onclick="waCopy()" ${stale ? 'disabled' : ''}><svg><use href="#icon-copy"/></svg> Copy message</button>
+    </div>`;
+}
+
+/* -------------------------------- page ---------------------------------- */
 
 function renderWhatsApp() {
   const el = document.getElementById('whatsappContent');
@@ -14975,155 +15429,253 @@ function renderWhatsApp() {
       Ask an administrator if you need it.</p></div></div></div>`;
     return;
   }
-  const canEditText = canAccess('whatsapp', 'edit');
+  // First visit after unlocking: carry on from the filters last used on this device.
+  if (!_waRestored) { _waRestored = true; if (state.waLastFilters) waFilters = waNormFilters(state.waLastFilters); }
+  _waOpenDD = '';
+  const canEdit = canAccess('whatsapp', 'edit');
   const cfg = waCfg();
-  const s = waStats();
-  const msg = waBuildMessage();
+  if (waFilters.template && !cfg.templates.some(t => t.id === waFilters.template)) waFilters.template = '';   // deleted meanwhile
+  if (_waPresetId && !cfg.presets.some(p => p.id === _waPresetId)) _waPresetId = '';
   const sel = (k, v) => waFilters[k] === v ? 'selected' : '';
+  const hasPreset = !!_waPresetId;
 
   el.innerHTML = `
   <div class="card"><div class="card-body">
     <p style="font-size:13px;margin:0 0 10px;color:var(--text-secondary)">
-      Pick what to advertise, then copy the message and paste it into WhatsApp. The message lists
-      <strong>models grouped by brand</strong> &mdash; a phone stocked in four colours is listed once,
-      with the stock added up.</p>
+      Choose what to advertise, tap <strong>Generate message</strong>, then send it to WhatsApp or copy it.
+      The message lists <strong>models grouped by brand</strong> &mdash; a phone stocked in four colours is
+      listed once, with the stock added up.</p>
 
-    <div class="form-group">
+    <div class="wa-presets">
+      <div style="flex:1 1 220px"><label class="form-label">Saved filters <span id="waPresetNote" class="wa-note"></span></label>
+        <select class="form-control" id="waPresetSel" onchange="waApplyPreset(this.value)">${waPresetOptionsHTML()}</select></div>
+      ${canEdit ? `<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:flex-end">
+        <button class="btn btn-secondary btn-sm" onclick="waSavePresetAs()">Save as…</button>
+        ${hasPreset ? `<button class="btn btn-secondary btn-sm" onclick="waUpdatePreset()">Update</button>
+        <button class="btn btn-secondary btn-sm" onclick="waDeletePreset()">Delete</button>` : ''}
+      </div>` : ''}
+    </div>
+
+    <div class="form-group" style="margin-top:12px">
       <label class="form-label">Search</label>
-      <input class="form-control" id="waSearch" value="${escapeHtml(waFilters.search)}"
+      <input class="form-control" id="waSearch" type="search" value="${escapeHtml(waFilters.search)}"
              placeholder="Name, brand, model, colour, category or SKU"
-             oninput="waFilters.search=this.value;waRefreshPreview()">
+             oninput="waFilters.search=this.value;waFiltersChanged()">
     </div>
 
-    <div style="display:flex;gap:14px;flex-wrap:wrap">
-      <div style="flex:1;min-width:220px"><label class="form-label">Brand</label>${waChips('brand','brand')}</div>
-      <div style="flex:1;min-width:220px"><label class="form-label">Category</label>${waChips('category','category')}</div>
-    </div>
-    <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:10px">
-      <div style="flex:1;min-width:220px"><label class="form-label">Colour</label>${waChips('color','color')}</div>
-      <div style="flex:1;min-width:220px"><label class="form-label">Model</label>${waChips('model','model')}</div>
-    </div>
+    <div class="wa-dd-grid">${WA_FIELDS.map(d => waDropdownHTML(d.key, d.label)).join('')}</div>
 
     <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;margin-top:12px">
       ${canAccess('products', 'viewPrices') ? `<div><label class="form-label">Cost price from</label>
-        <input class="form-control" type="number" min="0" style="width:120px" value="${escapeHtml(String(waFilters.costMin))}"
-               oninput="waFilters.costMin=this.value;waRefreshPreview()"></div>
+        <input class="form-control" type="number" min="0" inputmode="decimal" style="width:120px" value="${escapeHtml(String(waFilters.costMin))}"
+               oninput="waFilters.costMin=this.value;waFiltersChanged()"></div>
       <div><label class="form-label">to</label>
-        <input class="form-control" type="number" min="0" style="width:120px" value="${escapeHtml(String(waFilters.costMax))}"
-               oninput="waFilters.costMax=this.value;waRefreshPreview()"></div>` : ''}
+        <input class="form-control" type="number" min="0" inputmode="decimal" style="width:120px" value="${escapeHtml(String(waFilters.costMax))}"
+               oninput="waFilters.costMax=this.value;waFiltersChanged()"></div>` : ''}
       <div><label class="form-label">Stock</label>
-        <select class="form-control" style="width:auto" onchange="waSet('stock',this.value)">
+        <select class="form-control" style="width:auto" onchange="waFilters.stock=this.value;waFiltersChanged()">
           <option value="in" ${sel('stock','in')}>In stock only</option>
           <option value="out" ${sel('stock','out')}>Out of stock only</option>
           <option value="all" ${sel('stock','all')}>All, in stock or not</option>
         </select></div>
+      ${cfg.templates.length ? `<div><label class="form-label">Wording</label>
+        <select class="form-control" style="width:auto;max-width:240px" onchange="waFilters.template=this.value;renderWhatsApp()">
+          <option value="">Main wording</option>
+          ${cfg.templates.slice().sort((a, b) => _waCmp(a.name, b.name)).map(t => `<option value="${escapeHtml(t.id)}" ${t.id === waFilters.template ? 'selected' : ''}>${escapeHtml(t.name)}</option>`).join('')}
+        </select></div>` : ''}
       <button class="btn btn-secondary btn-sm" onclick="waClearFilters()">Clear filters</button>
     </div>
+  </div></div>
 
-    ${canEditText ? `
-    <div style="border-top:1px solid var(--border-color);margin-top:14px;padding-top:12px;display:flex;gap:16px;flex-wrap:wrap">
-      <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
-        <input type="checkbox" ${cfg.showQty ? 'checked' : ''} onchange="waSaveOption('showQty',this.checked)">
-        Show stock after each model &mdash; <code>SAM S22 ULTRA (25 ${escapeHtml(cfg.qtyLabel)})</code></label>
-      <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
-        <input type="checkbox" ${cfg.markNew ? 'checked' : ''} onchange="waSaveOption('markNew',this.checked)">
+  ${canEdit ? `
+  <div class="card mt-lg"><div class="card-body">
+    <p style="font-size:13px;margin:0 0 8px"><strong>What each line shows</strong> <span style="color:var(--text-muted);font-weight:400">&mdash; saved for every device</span></p>
+    <div style="display:flex;gap:10px 18px;flex-wrap:wrap">
+      <label class="wa-opt"><input type="checkbox" ${cfg.showColors ? 'checked' : ''} onchange="waSaveOption('showColors',this.checked)">
+        The colours &mdash; <code>iPhone 15 – Black, Blue</code></label>
+      <label class="wa-opt"><input type="checkbox" ${cfg.showQty ? 'checked' : ''} onchange="waSaveOption('showQty',this.checked)">
+        The stock &mdash; <code>iPhone 15 (25 ${escapeHtml(cfg.qtyLabel)})</code></label>
+    </div>
+
+    <p style="font-size:13px;margin:16px 0 8px"><strong>🆕 New arrivals</strong></p>
+    <div style="display:flex;gap:10px 18px;flex-wrap:wrap;align-items:center">
+      <label class="wa-opt"><input type="checkbox" ${cfg.markNew ? 'checked' : ''} onchange="waSaveOption('markNew',this.checked)">
         Mark models added in the last
         <input type="number" min="1" max="365" value="${cfg.newDays}" style="width:64px;padding:3px 6px"
-               onclick="event.stopPropagation()" onchange="waSaveOption('newDays',this.value)"> days with 🆕</label>
-    </div>` : ''}
-  </div></div>
-
-  <div class="card mt-lg"><div class="card-body">
-    <div class="table-toolbar" style="width:100%;margin-bottom:10px">
-      <span class="card-title">Message preview</span>
-      <div class="btn-group">
-        <button class="btn btn-primary" onclick="waCopy()"><svg><use href="#icon-copy"/></svg> Copy message</button>
-      </div>
+               onclick="event.stopPropagation()" onchange="waSaveOption('newDays',this.value)"> days</label>
+      <label class="wa-opt" style="${cfg.markNew ? '' : 'opacity:.55'}"><input type="checkbox" ${cfg.newRestock ? 'checked' : ''} ${cfg.markNew ? '' : 'disabled'}
+        onchange="waSaveOption('newRestock',this.checked)"> &hellip;or restocked in that time (a completed purchase order)</label>
     </div>
-    <p style="font-size:12px;color:var(--text-secondary);margin:0 0 8px" id="waStats">${waStatsLine()}</p>
-    <textarea id="waPreview" class="form-control" rows="18" readonly
-      style="font-family:ui-monospace,Consolas,monospace;font-size:12px;line-height:1.5;white-space:pre">${escapeHtml(msg)}</textarea>
+    <p style="font-size:12px;color:var(--text-secondary);margin:12px 0 6px">Always mark these as new, whatever the days say
+      (a model is marked if any of its products, its brand or one of its colours is ticked):</p>
+    <div class="wa-dd-grid">${WA_MARKS.map(m => waDropdownHTML(m.id, m.label)).join('')}</div>
+    ${Object.values(cfg.newMarks).some(a => a.length) ? `<button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="waClearMarks()">Clear all of these</button>` : ''}
+  </div></div>` : ''}
+
+  <!-- Stays at the bottom of the screen while the filters are in view, so the
+       count and the button are never a long scroll away on a phone. -->
+  <div class="wa-genbar">
+    <p id="waSummary">${waSummaryHTML()}</p>
+    <button class="btn btn-primary btn-lg" onclick="waGenerate()">Generate message</button>
+  </div>
+
+  <div class="card mt-lg" id="waResultCard"><div class="card-body">
+    <p class="card-title" style="margin:0 0 10px">Message</p>
+    <div id="waResult"></div>
   </div></div>
 
-  ${!canEditText ? '' : `
+  ${!canEdit ? '' : waTextCardHTML(cfg)}`;
+  waPresetNote();
+  waRenderResult();
+}
+
+/**
+ * The wording card. It edits whichever wording is chosen above ("Main wording"
+ * or a saved one), so what you edit is what the next message uses.
+ */
+function waTextCardHTML(cfg) {
+  const t = waFilters.template && cfg.templates.find(x => x.id === waFilters.template);
+  const w = t || cfg;
+  return `
   <div class="card mt-lg"><div class="card-body">
-    <p style="font-size:13px;margin:0 0 4px"><strong>Message text</strong></p>
+    <p style="font-size:13px;margin:0 0 4px"><strong>Message text${t ? ' &mdash; ' + escapeHtml(t.name) : ' &mdash; main wording'}</strong></p>
     <p style="font-size:12px;color:var(--text-secondary);margin:0 0 12px">
-      Saved with your data, so every device and every message uses the same wording.
-      WhatsApp shows text wrapped in *asterisks* in bold.</p>
+      Saved with your data, so every device uses the same wording. WhatsApp shows text wrapped in *asterisks* in bold.
+      Keep several wordings (one per style you advertise) with <em>Save as a new wording</em>, and pick one under <em>Wording</em> above.</p>
     <div class="form-group">
       <label class="form-label">First line (the style being offered)</label>
-      <input class="form-control" id="waTitle" value="${escapeHtml(cfg.title)}"
+      <input class="form-control" id="waTitle" value="${escapeHtml(w.title || '')}"
              placeholder="NEW BOOM TPU 4 CORNER BUMPER CASE"></div>
     <div class="form-group">
       <label class="form-label">Community link</label>
-      <input class="form-control" id="waLink" value="${escapeHtml(cfg.link)}"
+      <input class="form-control" id="waLink" value="${escapeHtml(w.link || '')}"
              placeholder="https://chat.whatsapp.com/…"></div>
     <div class="form-group">
       <label class="form-label">Closing message &mdash; English</label>
       <textarea class="form-control" id="waEnglish" rows="5"
-        placeholder="✨ Join our WhatsApp Community …">${escapeHtml(cfg.english)}</textarea></div>
+        placeholder="✨ Join our WhatsApp Community …">${escapeHtml(w.english || '')}</textarea></div>
     <div class="form-group">
       <label class="form-label">Closing message &mdash; Hindi</label>
       <textarea class="form-control" id="waHindi" rows="5"
-        placeholder="✨ हमारे WhatsApp Community से जुड़ें! …">${escapeHtml(cfg.hindi)}</textarea></div>
+        placeholder="✨ हमारे WhatsApp Community से जुड़ें! …">${escapeHtml(w.hindi || '')}</textarea></div>
     <div class="form-group" style="max-width:200px">
       <label class="form-label">Word after the stock number</label>
       <input class="form-control" id="waQtyLabel" value="${escapeHtml(cfg.qtyLabel)}" placeholder="pcs"></div>
-    <button class="btn btn-secondary" onclick="waSaveText()">Save message text</button>
-  </div></div>`}`;
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-secondary" onclick="waSaveText()">Save ${t ? 'this wording' : 'main wording'}</button>
+      <button class="btn btn-secondary" onclick="waSaveTextAs()">Save as a new wording…</button>
+      ${t ? `<button class="btn btn-secondary" onclick="waDeleteTemplate()">Delete this wording</button>` : ''}
+    </div>
+  </div></div>`;
 }
 
-function waStatsLine() {
-  const s = waStats();
-  const n = (v, w) => v + ' ' + w + (v === 1 ? '' : 's');
-  return `${n(s.models,'model')} across ${n(s.brands,'brand')}, from ${n(s.products,'product row')}.`;
-}
-
-/** Update just the preview, so typing in the search box does not rebuild the page. */
-function waRefreshPreview() {
-  const pv = document.getElementById('waPreview');
-  if (pv) pv.value = waBuildMessage();
-  const st = document.getElementById('waStats');
-  if (st) st.textContent = waStatsLine();
+function _waTextInputs() {
+  const v = id => document.getElementById(id)?.value || '';
+  return { title: v('waTitle'), link: v('waLink').trim(), english: v('waEnglish'), hindi: v('waHindi') };
 }
 
 async function waSaveOption(key, value) {
   if (!canAccess('whatsapp', 'edit')) { showToast('You cannot change the message settings', 'error'); return; }
   const cfg = waCfg();
   cfg[key] = key === 'newDays' ? Math.max(1, Math.min(365, parseInt(value, 10) || 30)) : value;
-  state.settings.whatsapp = cfg;
-  await saveData('settings');
+  await waSaveCfg(cfg);
   renderWhatsApp();
 }
 
 async function waSaveText() {
   if (!canAccess('whatsapp', 'edit')) { showToast('You cannot change the message text', 'error'); return; }
   const cfg = waCfg();
-  cfg.title    = document.getElementById('waTitle').value;
-  cfg.link     = document.getElementById('waLink').value.trim();
-  cfg.english  = document.getElementById('waEnglish').value;
-  cfg.hindi    = document.getElementById('waHindi').value;
-  cfg.qtyLabel = document.getElementById('waQtyLabel').value.trim() || 'pcs';
-  state.settings.whatsapp = cfg;
-  await saveData('settings');
-  showToast('Message text saved', 'success');
+  const t = waFilters.template && cfg.templates.find(x => x.id === waFilters.template);
+  Object.assign(t || cfg, _waTextInputs());
+  cfg.qtyLabel = (document.getElementById('waQtyLabel')?.value || '').trim() || 'pcs';
+  await waSaveCfg(cfg);
+  showToast(t ? `Wording "${t.name}" saved` : 'Message text saved', 'success');
   renderWhatsApp();
 }
 
-async function waCopy() {
-  const text = waBuildMessage();
-  if (!text) { showToast('Nothing to copy — no products match', 'warning'); return; }
-  try {
-    await navigator.clipboard.writeText(text);
-    showToast('Message copied — paste it into WhatsApp', 'success');
-  } catch (e) {
-    // Clipboard access needs a secure context and a user gesture; select the
-    // text so it can still be copied by hand rather than failing silently.
-    const pv = document.getElementById('waPreview');
-    if (pv) { pv.removeAttribute('readonly'); pv.select(); pv.setAttribute('readonly',''); }
-    showToast('Could not copy automatically — the text is selected, press Ctrl+C', 'warning');
+function waSaveTextAs() {
+  if (!canAccess('whatsapp', 'edit')) { showToast('You cannot change the message text', 'error'); return; }
+  window._waPendingText = _waTextInputs();
+  openModal('Save as a new wording', `
+    <div class="form-group"><label class="form-label">Name</label>
+      <input class="form-control" id="waTplName" maxlength="60" placeholder="e.g. MagSafe cases"></div>
+    <p style="font-size:12px;color:var(--text-muted);margin:0">It is saved with the text currently in the boxes, for every device.</p>`,
+    `<button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+     <button class="btn btn-primary" onclick="_waSaveTemplate()">Save</button>`, 'sm');
+  setTimeout(() => document.getElementById('waTplName')?.focus(), 100);
+}
+
+async function _waSaveTemplate() {
+  const name = (document.getElementById('waTplName')?.value || '').trim();
+  if (!name) { showToast('Give it a name', 'error'); return; }
+  const cfg = waCfg();
+  let t = cfg.templates.find(x => _waLc(x.name) === _waLc(name));
+  if (!t) { t = { id: 'wt' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6) }; cfg.templates.push(t); }
+  Object.assign(t, window._waPendingText || {}, { name });
+  await waSaveCfg(cfg);
+  waFilters.template = t.id;
+  closeModal();
+  showToast(`Wording "${name}" saved`, 'success');
+  renderWhatsApp();
+}
+
+function waDeleteTemplate() {
+  const cfg = waCfg(), t = cfg.templates.find(x => x.id === waFilters.template);
+  if (!t) return;
+  showConfirm('Delete wording', `Delete the wording "${t.name}" on every device? Saved filters that used it fall back to the main wording.`, async () => {
+    const c = waCfg();
+    c.templates = c.templates.filter(x => x.id !== t.id);
+    await waSaveCfg(c);
+    waFilters.template = '';
+    renderWhatsApp();
+  }, 'Delete');
+}
+
+/**
+ * Send the generated message. On a phone: the share sheet, where WhatsApp (and
+ * WhatsApp Business) appear and the group is picked. On a computer: WhatsApp's
+ * own link, which opens WhatsApp Web or the desktop app with the text filled in.
+ */
+async function waSend() {
+  const text = _waGenerated && _waGenerated.text;
+  if (!text) return;
+  const touch = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+  if (touch && navigator.share) {
+    try { await navigator.share({ text }); return; }
+    catch (e) { if (e && e.name === 'AbortError') return; /* closed the sheet */ }
   }
+  window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank', 'noopener');
+}
+
+async function waCopy() {
+  const text = _waGenerated && _waGenerated.text;
+  if (!text) return;
+  if (await _copyText(text)) { showToast('Message copied — paste it into WhatsApp', 'success'); return; }
+  // Last resort: select it so it can be copied by hand (long-press → Copy on a phone).
+  const pv = document.getElementById('waPreview');
+  if (pv) { pv.removeAttribute('readonly'); pv.focus(); pv.select(); pv.setSelectionRange(0, text.length); pv.setAttribute('readonly', ''); }
+  showToast('Could not copy automatically — the message is selected; copy it from the menu', 'warning');
+}
+
+/**
+ * Copy text to the clipboard. The modern API needs https and a tap; the old
+ * copy command is the fallback that still works in phone browsers and
+ * installed apps where the modern one is refused.
+ */
+async function _copyText(text) {
+  try {
+    if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(text); return true; }
+  } catch (e) { /* fall through */ }
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0';
+    document.body.appendChild(ta);
+    ta.select(); ta.setSelectionRange(0, text.length);
+    const ok = document.execCommand('copy');
+    ta.remove();
+    return !!ok;
+  } catch (e) { return false; }
 }
 
 // ============================================================
@@ -15154,14 +15706,20 @@ const DEFAULT_PERMISSIONS = {
 // So a missing key here means "as before" — allowed — until an admin unticks it.
 const PERMS_ALLOWED_IF_MISSING = {
   products: ['export'], customers: ['export'], suppliers: ['export'], sales: ['export'], purchases: ['export'],
+  // Roles saved before the WhatsApp page existed have no `whatsapp` entry at
+  // all. The permission screen shows both boxes ticked for them, yet they
+  // could not even open the page.
+  whatsapp: ['view', 'edit'],
 };
+// ...and a module with no entry at all (the role predates it): only these.
+const MODULE_ALLOWED_IF_ABSENT = { whatsapp: ['view', 'edit'] };
 
 function canAccess(module, action) {
   if (!currentUser || currentUser.role === 'admin') return true;
   const perms = currentUser.permissions || {};
   const mod = perms[module];
-  if (!mod) return false;
   const act = action || 'view';
+  if (!mod) return (MODULE_ALLOWED_IF_ABSENT[module] || []).includes(act);
   if (mod[act] === undefined && (PERMS_ALLOWED_IF_MISSING[module] || []).includes(act)) return true;
   return !!mod[act];
 }
