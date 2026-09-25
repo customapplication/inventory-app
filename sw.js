@@ -4,7 +4,7 @@
  * the old version will otherwise keep serving it, and your fix will be
  * reported as broken.
  */
-const CACHE = 'inventory-v3.13.1';
+const CACHE = 'inventory-v3.16.0';
 
 const ASSETS = [
   './',
@@ -19,8 +19,11 @@ const ASSETS = [
 
 self.addEventListener('install', e => {
   self.skipWaiting();
+  // One file at a time. cache.addAll() is all-or-nothing, so a single missing
+  // icon used to leave NOTHING cached - and the app would not open offline
+  // until it had happened to be loaded again while online.
   e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(ASSETS)).catch(() => { /* a missing icon must not block install */ })
+    caches.open(CACHE).then(c => Promise.allSettled(ASSETS.map(a => c.add(a))))
   );
 });
 
@@ -49,10 +52,20 @@ self.addEventListener('fetch', e => {
   e.respondWith(
     fetch(req)
       .then(res => {
-        const copy = res.clone();
-        caches.open(CACHE).then(c => c.put(req, copy)).catch(() => {});
+        // Only good answers are kept. A 404 or 500 during an upload used to
+        // be cached too, and then served as "the app" whenever offline.
+        if (res && res.ok && res.type === 'basic') {
+          const copy = res.clone();
+          caches.open(CACHE).then(c => c.put(req, copy)).catch(() => {});
+        }
         return res;
       })
-      .catch(() => caches.match(req).then(hit => hit || caches.match('./index.html')))
+      .catch(() => caches.match(req).then(hit => {
+        if (hit) return hit;
+        // Only a page load falls back to the app itself; an image or icon that
+        // is not cached gets a plain failure, not a copy of index.html.
+        if (req.mode === 'navigate') return caches.match('./index.html');
+        return Response.error();
+      }))
   );
 });
