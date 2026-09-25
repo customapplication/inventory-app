@@ -17,19 +17,25 @@ local file server. Every feature came across; the storage layer was replaced.
   variants across models and colours in one pass
 - **Customers and suppliers** with full order history
 - **Sales and purchase orders** — line items, per-order or per-item shipping and
-  packaging, manual tax override, invoice generation with a configurable template
+  packaging, manual tax override, invoice generation with a configurable template;
+  order numbers are a short series per device (`SO-A-00042`), given when the
+  order is saved and checked against GST's 16-character limit
 - **Dashboard** — KPIs in Indian currency format, monthly sales and
   revenue-by-category charts, filters by year, month and category
 - **Reports** — inventory, sales, purchase, profit and product analysis, each
-  with configurable filters and pagination
+  with configurable filters and pagination. Profit is sales minus the cost of the
+  goods actually sold (each product's average cost when it was sold), so a month
+  in which you restock does not show a loss
 - **Users and roles** — Admin, Manager, Staff and custom roles with per-module
-  permissions
+  permissions. Staff sign in with a PIN; administrators sign in on a new device
+  with a strong password and keep a quick PIN on each device
 - **WhatsApp Message** — filter the catalogue and generate the broadcast the shop
   sends to its groups: models grouped by brand, optional stock counts and a 🆕
   marker for recent arrivals, with the title, community link and English/Hindi
   sign-off saved once and shared across devices
 - **Activity log** with 14 tracking toggles and field-level change history
-- **Export** to CSV, Excel and PDF; JSON backup and restore
+- **Export** to CSV, Excel and PDF; JSON backup and restore (a restore keeps the
+  device's own sync connection, counters and your login)
 - Dark mode, keyboard shortcuts, column resize and reorder, Excel-style column
   filters
 
@@ -52,23 +58,39 @@ the name is what reaches the label and the WhatsApp message.
 ## How the data is handled
 
 - Records are stored in the browser's IndexedDB as **AES-256-GCM ciphertext**.
-- The key is derived from your PIN with **PBKDF2-SHA256, 210,000 iterations**,
-  and is held in memory only while the app is unlocked.
-- Unlocking *is* decryption. A wrong PIN cannot produce readable data, so there
-  is no stored password hash to attack.
-- The PIN also unwraps a copy of the key stored against your security answers,
-  which is what makes "forgot my PIN" recovery possible without a backdoor.
+- Each device has its own random key, locked under your PIN or password with
+  **PBKDF2-SHA256, 210,000 iterations**, and held in memory only while the app
+  is unlocked.
+- Unlocking *is* decryption. On the device, a wrong PIN cannot produce readable
+  data.
+- So that the same PIN works on every synced device, a **fingerprint** of it
+  travels with your account in the synced settings. Since 3.16 that fingerprint
+  is salted and deliberately slow (PBKDF2, 310,000 rounds). That slows guessing
+  but cannot make a 4–6 digit PIN safe from someone who has your Sheet or a
+  backup and a fast computer — so **an administrator's PIN never travels at
+  all**: administrators sign in on a new device with a password of 8+
+  characters (letters and numbers), and their PIN is a quick way in on the
+  device where it was set. For staff, a longer PIN is the easy improvement.
+- A copy of the key is also locked under each pair of your security answers,
+  which is what makes "forgot my PIN" recovery possible without a backdoor. The
+  answers travel the same way, so recovery works on any synced device.
 - Deletions leave tombstones, so a record deleted on one device stays deleted
   everywhere instead of being resurrected by the next sync.
 
-**There is no PIN recovery beyond the security questions, by design.** If the
-PIN is forgotten and the questions were never set, the data is unrecoverable.
+**There is no recovery beyond the security questions, by design.** If the PIN
+(or, for an administrator, the password) is forgotten and the questions were
+never set, the data is unrecoverable.
 
 ## Optional multi-device sync
 
 A free Google Apps Script web app, backed by a Sheet you own, keeps devices in
 step. No OAuth, nothing to renew, and it leaves you with a spreadsheet you can
 read. Records merge individually; for the same record the most recent edit wins.
+
+Because it is readable, **the Sheet holds your records in plain form** — the
+encryption is on the devices. Share it with nobody, and turn on 2-step
+verification for the Google account that owns it. Sign-in fingerprints are kept
+out of its readable tabs (Code.gs v6).
 
 Sync is **incremental**: each collection is an append-only log in which the row
 number is the revision, so a device uploads only what changed since it last
@@ -94,10 +116,6 @@ gains a row per edit, so it is periodically rewritten to keep only the newest ro
 per record. Schedule and per-collection thresholds live in Settings → Data. The
 activity log is never compacted — it is an audit trail.
 
-Setup is in [`SETUP-GUIDE.md`](SETUP-GUIDE.md) § 4. The script is
-[`sheets-sync/Code.gs`](sheets-sync/Code.gs) — it goes to Google, never into
-this repository.
-
 ## Install it
 
 | Device | How |
@@ -108,15 +126,6 @@ this repository.
 
 On iPhone, install *first* and enter data inside the installed icon — the
 installed app has its own storage, separate from Safari.
-
-## Why this repository is public
-
-Free GitHub Pages is publicly readable whatever the repository's visibility, and
-gated Pages is an Enterprise feature. That is fine here: **these files contain no
-data.** They are the program. Records live encrypted in each owner's browser.
-Anyone who finds the URL sees an empty app asking for a PIN.
-
-Never commit a sync URL or secret. Together they are a password to your data.
 
 ## Running it locally
 
@@ -139,14 +148,11 @@ manifest.webmanifest       PWA manifest
 icon*.png, icon.svg        icons (iOS reads only apple-touch-icon.png)
 build_icons.py             regenerates the icons — `python build_icons.py`
 sheets-sync/Code.gs        Apps Script sync backend — paste into Google
-SETUP-GUIDE.md             deploy, install, sync, archive, troubleshoot
-HOSTING.md                 free hosts other than GitHub Pages, and how to move
-MIGRATION.md               hand this to anyone moving off the desktop app
-CONTEXT.md                 architecture and invariants, for whoever works on this next
 run.bat                    local test server
+
+docs/SETUP-GUIDE.md        deploy, install, sync, archive, troubleshoot
+docs/HOSTING.md            free hosts other than GitHub Pages, and how to move
+docs/MIGRATION.md          hand this to anyone moving off the desktop app
+docs/CONTEXT.md            architecture and invariants, for whoever works on this next
+docs/README.md             this file
 ```
-
-## Updating
-
-Change `index.html`, bump `CACHE` in `sw.js`, upload both. Skip the bump and
-phones keep serving the old code. In-app: **Settings → About → Check for update**.
