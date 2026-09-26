@@ -597,8 +597,8 @@ table { border-collapse: collapse; width: 100%; }
 /* --- KPI Cards --- */
 .kpi-grid {
   display: grid;
-  /* Always 8 columns so 15 KPIs render as exactly 2 rows (8 + 7),
-     regardless of whether the sidebar is collapsed or expanded. */
+  /* Always 8 columns: the 18 cards (6 of them two cells wide) fill exactly
+     3 rows, whether the sidebar is collapsed or expanded. */
   grid-template-columns: repeat(8, minmax(0, 1fr));
   gap: 6px;
   margin-bottom: var(--spacing-md);
@@ -612,6 +612,17 @@ table { border-collapse: collapse; width: 100%; }
 .kpi-card .kpi-tooltip { display:none; position:absolute; bottom:calc(100% + 10px); left:50%; transform:translateX(-50%); background:#2d3436; color:#fff; padding:7px 14px; border-radius:8px; font-size:10px; line-height:1.4; white-space:nowrap; z-index:50; pointer-events:none; box-shadow:0 8px 24px rgba(0,0,0,0.3); text-align:left; }
 .kpi-card .kpi-tooltip::after { content:''; position:absolute; top:100%; left:50%; transform:translateX(-50%); border:6px solid transparent; border-top-color:#2d3436; }
 .kpi-card:hover .kpi-tooltip { display:block; }
+/* Long explanations wrap instead of running off the screen. */
+.kpi-card .kpi-tooltip { white-space:normal; width:max-content; max-width:min(300px, 80vw); }
+/* Two figures in one card (tax collected | paid, ...): two grid cells wide. */
+.kpi-card.kpi-split { grid-column: span 2; }
+.kpi-split .kpi-header { flex-wrap: wrap; row-gap: 2px; }
+.kpi-split-sub { margin-left: auto; font-size: 8.5px; opacity: 0.6; font-weight: 600; white-space: nowrap; }
+.kpi-halves { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.kpi-half { min-width: 0; }
+.kpi-half + .kpi-half { border-left: 1px solid rgba(0,0,0,0.08); padding-left: 8px; }
+[data-theme="dark"] .kpi-half + .kpi-half { border-left-color: rgba(255,255,255,0.1); }
+.kpi-half-label { font-size: 8.5px; text-transform: uppercase; letter-spacing: 0.2px; font-weight: 600; opacity: 0.65; margin-bottom: 1px; }
 
 .kpi-card {
   border-radius: 10px;
@@ -1745,6 +1756,72 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 .col-editor-item .col-actions button:hover { color:var(--text-primary); }
 .col-editor-item.dragging { opacity:0.4; }
 
+/* --- Settings -> Columns (3.18): tabs per table, card per column --- */
+.cc-editor { --tbl: var(--brand-primary); }
+.cc-tabs { display:flex; gap:8px; overflow-x:auto; padding:4px 2px 10px; margin-bottom:6px; scrollbar-width:thin; -webkit-overflow-scrolling:touch; }
+.cc-pill { flex:none; position:relative; display:inline-flex; align-items:center; gap:7px; padding:8px 13px; border-radius:999px; border:1.5px solid var(--border-color); background:var(--bg-card); color:var(--text-primary); font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap; transition:background .15s, border-color .15s, color .15s; }
+.cc-pill svg { width:15px; height:15px; fill:var(--tbl); }
+.cc-pill em { font-style:normal; font-size:11px; font-weight:600; color:var(--text-secondary); background:var(--bg-input); padding:1px 7px; border-radius:999px; }
+.cc-pill:hover { border-color:var(--tbl); }
+.cc-pill.active { background:var(--tbl); border-color:var(--tbl); color:#fff; box-shadow:0 4px 12px rgba(0,0,0,.12); }
+.cc-pill.active svg { fill:#fff; }
+.cc-pill.active em { background:rgba(255,255,255,.22); color:#fff; }
+.cc-dot { position:absolute; top:2px; right:4px; width:9px; height:9px; border-radius:50%; background:var(--color-warning); box-shadow:0 0 0 2px var(--bg-card); }
+.cc-head { display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:14px 16px; border-radius:12px; border:1px solid var(--border-color); border-left:5px solid var(--tbl); background:var(--bg-card); background:linear-gradient(90deg, color-mix(in srgb, var(--tbl) 12%, var(--bg-card)), var(--bg-card) 70%); margin-bottom:10px; }
+.cc-head-icon { width:40px; height:40px; border-radius:10px; flex:none; display:flex; align-items:center; justify-content:center; background:var(--tbl); }
+.cc-head-icon svg { width:20px; height:20px; fill:#fff; }
+.cc-head h3 { margin:0; font-size:16px; }
+.cc-head p { margin:2px 0 0; font-size:12px; color:var(--text-secondary); }
+.cc-preview { display:flex; align-items:center; gap:8px; margin:0 0 8px; min-width:0; }
+.cc-preview-label { flex:none; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--text-muted); }
+.cc-preview-cols { display:flex; gap:4px; overflow-x:auto; min-width:0; padding-bottom:2px; scrollbar-width:thin; }
+.cc-preview-cols span { flex:none; font-size:11px; padding:3px 8px; border-radius:6px; background:var(--bg-input); border:1px solid var(--border-color); border-bottom:2px solid var(--tbl); white-space:nowrap; }
+.cc-hint { font-size:12px; color:var(--text-secondary); margin:0 0 12px; line-height:1.5; }
+.col-editor-item.cc-row { display:flex; align-items:stretch; gap:12px; padding:10px 12px; margin-bottom:8px; border:1px solid var(--border-color); border-left:4px solid var(--tbl); border-radius:10px; background:var(--bg-card); cursor:default; }
+.cc-row.is-hidden { border-left-color:var(--border-color); background:var(--bg-input); }
+.cc-row.is-hidden .col-name { color:var(--text-secondary); }
+.cc-order { flex:none; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; }
+.cc-num { min-width:22px; text-align:center; font-size:12px; font-weight:700; color:var(--tbl); }
+.cc-move { width:30px; height:26px; padding:0; display:flex; align-items:center; justify-content:center; border:1px solid var(--border-color); border-radius:6px; background:var(--bg-card); cursor:pointer; }
+.cc-move svg { width:16px; height:16px; fill:none; stroke:var(--text-secondary); stroke-width:2.5; stroke-linecap:round; stroke-linejoin:round; }
+.cc-move:disabled { opacity:.3; cursor:default; }
+.cc-move:not(:disabled):hover { border-color:var(--tbl); }
+.cc-main { flex:1; min-width:0; display:flex; flex-direction:column; gap:4px; }
+.cc-title { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+.cc-row .drag-handle { color:var(--text-muted); cursor:grab; font-size:15px; line-height:1; }
+.cc-row .col-name { flex:none; font-size:14px; font-weight:600; }
+.cc-tag { font-size:10px; font-weight:700; padding:1px 7px; border-radius:999px; text-transform:uppercase; letter-spacing:.3px; }
+.cc-tag-custom { background:rgba(9,132,227,.12); color:var(--kpi-blue); }
+.cc-tag-req { background:rgba(253,203,110,.28); color:#9a6d0a; }
+.cc-tag-off { background:var(--bg-card); color:var(--text-muted); border:1px solid var(--border-color); }
+.cc-meta { display:flex; align-items:center; gap:8px; font-size:11px; color:var(--text-muted); }
+.cc-meta code { font-size:10px; background:var(--bg-input); padding:1px 6px; border-radius:4px; }
+.cc-controls { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-top:2px; }
+.cc-filter { display:flex; align-items:center; gap:6px; margin:0; font-size:11px; color:var(--text-secondary); }
+.cc-filter select { font-size:12px; padding:4px 8px; border:1px solid var(--border-color); border-radius:6px; background:var(--bg-input); color:var(--text-primary); }
+.cc-chip { display:inline-flex; align-items:center; gap:4px; font-size:12px; padding:4px 10px; border-radius:999px; border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-secondary); cursor:pointer; }
+.cc-chip svg { width:13px; height:13px; fill:currentColor; }
+.cc-chip:hover { border-color:var(--tbl); }
+.cc-chip.on { background:rgba(253,203,110,.28); border-color:#f0c35a; color:#9a6d0a; }
+.cc-chip.cc-danger { color:var(--color-danger); }
+.cc-switch { position:relative; flex:none; align-self:center; width:44px; height:26px; margin:0; cursor:pointer; }
+.cc-switch input { position:absolute; inset:0; width:100%; height:100%; margin:0; opacity:0; cursor:pointer; z-index:1; }
+.cc-track { position:absolute; inset:0; border-radius:999px; background:var(--border-color); transition:background .15s; }
+.cc-track::after { content:''; position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.3); transition:transform .15s; }
+.cc-switch input:checked + .cc-track { background:var(--tbl); }
+.cc-switch input:checked + .cc-track::after { transform:translateX(18px); }
+.cc-switch input:focus-visible + .cc-track { outline:2px solid var(--tbl); outline-offset:2px; }
+.cc-deleted { margin-top:12px; padding:8px 12px; border:1px dashed var(--border-color); border-radius:10px; }
+.cc-deleted summary { cursor:pointer; font-size:13px; font-weight:600; color:var(--text-secondary); }
+.cc-gone { display:flex; align-items:center; gap:8px; padding:8px 0; border-top:1px solid var(--border-color); font-size:13px; }
+.cc-gone span { flex:1; min-width:0; text-decoration:line-through; color:var(--text-secondary); }
+.cc-gone code { font-size:10px; color:var(--text-muted); }
+.cc-savebar { position:sticky; bottom:0; z-index:5; display:flex; align-items:center; gap:8px; margin-top:16px; padding:10px 12px; border:1px solid var(--border-color); border-radius:12px; background:var(--bg-card); box-shadow:0 -4px 16px rgba(0,0,0,.06); }
+.cc-save-state { flex:1; display:flex; align-items:center; gap:6px; font-size:13px; color:var(--text-secondary); }
+.cc-savebar.dirty { border-color:var(--color-warning); }
+.cc-savebar.dirty .cc-save-state { color:var(--text-primary); font-weight:600; }
+.cc-savebar.dirty .cc-save-state::before { content:''; width:8px; height:8px; border-radius:50%; background:var(--color-warning); }
+
 /* Column Filter (Excel AutoFilter style) */
 /* Column Resize Handle — visible thick line on hover */
 .data-table th { position:relative; }
@@ -1952,18 +2029,22 @@ textarea.form-control { resize: vertical; min-height: 80px; }
   }
   .tab-bar .tab-item { white-space: nowrap; flex: none; }
 
-  /* Column configuration rows: a single non-wrapping flex row ran off the
-     right edge and cut off the delete button. */
-  .col-editor-item {
-    flex-wrap: wrap;
-    gap: 6px 8px;
-    padding: 10px;
-    align-items: center;
-  }
-  .col-editor-item .col-name { flex: 1 1 100%; font-size: 14px; }
-  .col-editor-item select { width: auto !important; flex: 1 1 120px; min-width: 110px; }
-  .col-editor-item .col-actions { margin-left: auto; }
-  .col-editor-item .col-actions button { width: 34px; height: 34px; }
+  /* Settings -> Columns: one card per column. Dragging does not work on
+     touch, so the arrows are the way to reorder here; controls wrap under
+     the name and the switch stays top-right. */
+  .col-editor-item.cc-row { position: relative; gap: 10px; padding: 10px; }
+  .cc-row .drag-handle { display: none; }
+  .cc-move { width: 36px; height: 32px; }
+  /* The switch sits in the card's corner, so the controls get the full width. */
+  .cc-switch { position: absolute; top: 10px; right: 10px; }
+  .cc-title { padding-right: 52px; }
+  .cc-filter { flex: 1 1 100%; }
+  .cc-filter select { flex: 1; padding: 8px; font-size: 14px; }
+  .cc-chip { padding: 7px 10px; font-size: 13px; }
+  .cc-head { padding: 12px; }
+  .cc-head .btn { width: 100%; justify-content: center; }
+  .cc-savebar { padding: 10px; }
+  .cc-savebar .btn { padding: 8px 12px; }
 
   /* Colour pickers: a 40px swatch is hard to hit, and the hex box crowded it. */
   .color-picker-group { flex-wrap: wrap; gap: 10px; }
@@ -2224,13 +2305,14 @@ textarea.form-control { resize: vertical; min-height: 80px; }
             <p id="welcomeSubtitle">Here's what's happening with your inventory today.</p>
           </div>
           <div class="welcome-actions">
-            <button class="btn" onclick="openProductModal()"><svg><use href="#icon-add"/></svg> Add Product</button>
-            <button class="btn" onclick="openOrderModal('sales')"><svg><use href="#icon-sales"/></svg> New Sale</button>
-            <button class="btn" onclick="openOrderModal('purchases')"><svg><use href="#icon-purchase"/></svg> New Purchase</button>
-            <button class="btn" onclick="openCustomerModal()"><svg><use href="#icon-customers"/></svg> Add Customer</button>
-            <button class="btn" onclick="openSupplierModal()"><svg><use href="#icon-suppliers"/></svg> Add Supplier</button>
+            <button class="btn" id="wbAddProduct" onclick="openProductModal()"><svg><use href="#icon-add"/></svg> Add Product</button>
+            <button class="btn" id="wbNewSale" onclick="openOrderModal('sales')"><svg><use href="#icon-sales"/></svg> New Sale</button>
+            <button class="btn" id="wbNewPurchase" onclick="openOrderModal('purchases')"><svg><use href="#icon-purchase"/></svg> New Purchase</button>
+            <button class="btn" id="wbAddCustomer" onclick="openCustomerModal()"><svg><use href="#icon-customers"/></svg> Add Customer</button>
+            <button class="btn" id="wbAddSupplier" onclick="openSupplierModal()"><svg><use href="#icon-suppliers"/></svg> Add Supplier</button>
           </div>
         </div>
+        <div id="backupReminder"></div>
         <div class="dash-filter-bar" id="dashFilterBar"></div>
         <div class="kpi-grid" id="kpiGrid"></div>
         <div class="dashboard-grid">
@@ -2238,6 +2320,8 @@ textarea.form-control { resize: vertical; min-height: 80px; }
             <div class="card-header" style="flex-wrap:wrap;gap:8px">
               <span class="card-title">Monthly Sales</span>
               <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-secondary);cursor:pointer;margin:0" title="Off: goods value before GST (as Gross Sales and Purchases). On: goods value plus GST.">
+                  <input type="checkbox" id="chartInclGst" onchange="_setChartInclGst(this.checked)" style="width:14px;height:14px;accent-color:var(--brand-primary)"> Include GST</label>
                 <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text-secondary)"><span style="width:10px;height:10px;border-radius:2px;background:var(--chart-sales-color);display:inline-block"></span>Sales</span>
                 <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text-secondary)"><span style="width:10px;height:10px;border-radius:2px;background:var(--chart-purchase-color);display:inline-block"></span>Purchases</span>
               </div>
@@ -2289,7 +2373,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
                 <select class="form-control" style="width:auto;padding:6px 12px" id="productCategoryFilter" onchange="renderProducts()">
                   <option value="">All Categories</option>
                 </select>
-                <div class="btn-split" style="display:inline-flex;border-radius:6px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,0.05)">
+                <div class="btn-split" id="productsAddGroup" style="display:inline-flex;border-radius:6px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,0.05)">
                   <button class="btn btn-primary" style="border-radius:6px 0 0 6px;border-right:1px solid rgba(255,255,255,0.25)" onclick="openProductModal()" title="Add a single product">
                     <svg><use href="#icon-add"/></svg> Add Product
                   </button>
@@ -2333,7 +2417,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
                 <button class="search-clear-btn" onclick="this.previousElementSibling.value='';debounceRender('customers');this.classList.remove('visible')" title="Clear">&times;</button>
               </div>
               <div class="btn-group">
-                <button class="btn btn-primary" onclick="openCustomerModal()">
+                <button class="btn btn-primary" id="customersAddBtn" onclick="openCustomerModal()">
                   <svg><use href="#icon-add"/></svg> Add Customer
                 </button>
                 <button class="btn btn-secondary" id="customersExportBtn" onclick="showExportMenu('customers',this)">
@@ -2368,7 +2452,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
                 <button class="search-clear-btn" onclick="this.previousElementSibling.value='';debounceRender('suppliers');this.classList.remove('visible')" title="Clear">&times;</button>
               </div>
               <div class="btn-group">
-                <button class="btn btn-primary" onclick="openSupplierModal()">
+                <button class="btn btn-primary" id="suppliersAddBtn" onclick="openSupplierModal()">
                   <svg><use href="#icon-add"/></svg> Add Supplier
                 </button>
                 <button class="btn btn-secondary" id="suppliersExportBtn" onclick="showExportMenu('suppliers',this)">
@@ -2406,7 +2490,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
                 <select class="form-control" style="width:auto;padding:6px 12px" id="salesStatusFilter" onchange="renderOrders('sales')">
                   <option value="">All Status</option>
                 </select>
-                <button class="btn btn-primary" onclick="openOrderModal('sales')">
+                <button class="btn btn-primary" id="salesAddBtn" onclick="openOrderModal('sales')">
                   <svg><use href="#icon-add"/></svg> New Sale
                 </button>
                 <button class="btn btn-secondary" id="salesExportBtn" onclick="showExportMenu('sales',this)">
@@ -2444,7 +2528,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
                 <select class="form-control" style="width:auto;padding:6px 12px" id="purchasesStatusFilter" onchange="renderOrders('purchases')">
                   <option value="">All Status</option>
                 </select>
-                <button class="btn btn-primary" onclick="openOrderModal('purchases')">
+                <button class="btn btn-primary" id="purchasesAddBtn" onclick="openOrderModal('purchases')">
                   <svg><use href="#icon-add"/></svg> New Purchase
                 </button>
                 <button class="btn btn-secondary" id="purchasesExportBtn" onclick="showExportMenu('purchases',this)">
@@ -2614,7 +2698,8 @@ const DEFAULT_SETTINGS = {
     lockBranding: true,
     lockTaxCurrency: false,
   },
-  autoBackup: { enabled: true, changeThreshold: 50, changesSinceBackup: 0, lastBackupTime: null },
+  // Device-local (never synced): the backup reminder on this device's dashboard.
+  autoBackup: { enabled: true, changeThreshold: 50, dayThreshold: 7, changesSinceBackup: 0, lastBackupTime: null },
   invoiceTemplate: {
     showLogo: true,
     companyAddress: '',
@@ -2684,14 +2769,15 @@ const DEFAULT_SETTINGS = {
       }
     },
     {
-      id: 3, name: 'Warehouse Staff', description: 'Product management and stock updates',
+      id: 3, name: 'Warehouse Staff', description: 'Product management; sees stock but not prices (so cannot enter orders)',
       permissions: {
         dashboard:{view:true,viewWelcomeBanner:false,viewDashFilters:false,viewSalesKpi:false,viewPurchaseKpi:false,viewStockAlerts:true,viewRecentOrders:false,viewMonthlyChart:false,viewTopProducts:false,viewCategoryChart:true,viewRevenueByCategoryChart:false,viewLowStockAlertsCard:true,viewGrossProfitKpi:false,viewInventoryValueKpi:true,viewTotalOrdersKpi:false,viewPendingKpi:false,viewUnpaidKpi:false,viewCancelledKpi:false,viewGrossSalesKpi:false,viewNetSalesKpi:false},
         products:{view:true,add:true,edit:true,delete:false,viewPrices:false,export:false},
         customers:{view:false,add:false,edit:false,delete:false,viewContact:false,export:false},
         suppliers:{view:true,add:false,edit:false,delete:false,viewContact:true,export:false},
         sales:{view:false,add:false,edit:false,delete:false,viewValues:false,export:false},
-        purchases:{view:true,add:true,edit:false,delete:false,viewValues:false,export:false},
+        // No See Prices, so no order entry (3.18): an order form shows prices.
+        purchases:{view:true,add:false,edit:false,delete:false,viewValues:false,export:false},
         reports:{view:false},
         // Warehouse Staff work stock, not customer-facing messaging.
         whatsapp:{view:false,edit:false},
@@ -3105,7 +3191,7 @@ const KEYRING_KEY = 'covervault.keyring.v1';
 const PROFILE_KEY = 'covervault.profile.v1';
 const DEVICE_KEY = 'covervault.device.v1';
 const PBKDF2_ITER = 210000;
-const APP_BUILD = '3.16.8';
+const APP_BUILD = '3.18.0';
 
 // Collections that participate in sync (record arrays, merged by id).
 const SYNC_COLLECTIONS = ['products', 'customers', 'suppliers', 'orders', 'activityLog'];
@@ -4587,7 +4673,7 @@ async function doSync(auto) {
     // Settings now match the Sheet's latest copy, so upgrading old hashes in
     // them (sent by a device still on 3.15, or never converted) is an edit of
     // the current settings - safe to stamp and send.
-    if (!_syncAgain && _settingsFp() === syncState.settingsFp) _upgradeCredentials().catch(() => {});
+    if (!_syncAgain && _settingsFp() === syncState.settingsFp) { _upgradeCredentials().catch(() => {}); _upgradeOrderEntryRights(); }
     if (resetSeen) {
       showToast('The shared Google Sheet was erased from another device. This device still had data, so it is being uploaded again. ' +
                 'If everything was meant to go, erase this device too (Settings → Data → Danger Zone).', 'warning', 12000);
@@ -6834,7 +6920,9 @@ let _searchIndexVersion = { products: 0, customers: 0, suppliers: 0 };
 
 function getSearchIndex(type) {
   const data = state[type] || [];
-  const version = data.length; // Simple change detection
+  // Simple change detection - plus what this person may see, so a sign-in
+  // with different rights never reuses an index built with the hidden fields.
+  const version = data.length + '|' + _maskedFields(type).join(',');
   if (_searchIndex[type] && _searchIndexVersion[type] === version) return _searchIndex[type];
 
   // Build index: map each item ID to a lowercase concatenated string of all searchable fields
@@ -6842,9 +6930,11 @@ function getSearchIndex(type) {
   if (type === 'products') {
     data.forEach(p => index.set(p.id, [p.name,p.brand,p.model,p.color,p.category,p.sku,p.description].filter(Boolean).join(' ').toLowerCase()));
   } else if (type === 'customers') {
-    data.forEach(c => index.set(c.id, [c.name,c.email,c.phone,c.city,c.address].filter(Boolean).join(' ').toLowerCase()));
+    const see = !_fieldMasked('customers', 'phone');
+    data.forEach(c => index.set(c.id, [c.name, see && c.email, see && c.phone, c.city, c.address].filter(Boolean).join(' ').toLowerCase()));
   } else if (type === 'suppliers') {
-    data.forEach(s => index.set(s.id, [s.name,s.email,s.phone,s.contactPerson,s.city].filter(Boolean).join(' ').toLowerCase()));
+    const see = !_fieldMasked('suppliers', 'phone');
+    data.forEach(s => index.set(s.id, [s.name, see && s.email, see && s.phone, s.contactPerson, s.city].filter(Boolean).join(' ').toLowerCase()));
   }
   _searchIndex[type] = index;
   _searchIndexVersion[type] = version;
@@ -6884,6 +6974,7 @@ function getUniqueColumnValues(tableKey, colKey) {
   else if (tableKey === 'sales') data = state.orders.filter(o => o.type === 'Sales');
   else if (tableKey === 'purchases') data = state.orders.filter(o => o.type === 'Purchase');
   else return [];
+  if (_fieldMasked(tableKey, colKey)) return [];
 
   const values = new Set();
   data.forEach(item => {
@@ -6921,7 +7012,7 @@ const tableColumnConfig = tableKey => state.settings.tableConfig?.[cfgKeyFor(tab
 /** Columns the user configured as filterable (filterType other than 'none'). */
 function filterableColumns(tableKey) {
   return tableColumnConfig(tableKey)
-    .filter(c => (c.filterType || 'none') !== 'none' && c.visible !== false)
+    .filter(c => (c.filterType || 'none') !== 'none' && c.visible !== false && !_fieldMasked(tableKey, c.key))
     .sort((a, b) => (a.order || 0) - (b.order || 0));
 }
 
@@ -6942,7 +7033,7 @@ function _activeFilterSummary(tableKey, colKey) {
 
 function activeFilterCount(tableKey) {
   const all = columnFilters[tableKey] || {};
-  return Object.keys(all).filter(k => _activeFilterSummary(tableKey, k)).length;
+  return Object.keys(all).filter(k => !_fieldMasked(tableKey, k) && _activeFilterSummary(tableKey, k)).length;
 }
 
 function openMobileFilterSheet(tableKey) {
@@ -7222,6 +7313,9 @@ function applyColumnFiltersToData(data, tableKey) {
   if (!filters) return data;
   return data.filter(item => {
     for (const [colKey, allowedValues] of Object.entries(filters)) {
+      // A filter on a field this person may not see (left over from someone
+      // else's session) would let them narrow a hidden price down by trial.
+      if (_fieldMasked(tableKey, colKey)) continue;
       let val;
       if (colKey === 'customer') { const c = state.customers.find(x => x.id === item.partyId); val = c?.name || ''; }
       else if (colKey === 'supplier') { const s = state.suppliers.find(x => x.id === item.partyId); val = s?.name || ''; }
@@ -7260,7 +7354,7 @@ function renderFilterBadges(tableKey) {
   // A key whose value list has been emptied is not an active filter. Counting
   // keys alone rendered a stray "Filters: / Clear All" strip above the table
   // with nothing in it.
-  const active = Object.entries(filters).filter(([, v]) => Array.isArray(v) && v.length > 0);
+  const active = Object.entries(filters).filter(([k, v]) => Array.isArray(v) && v.length > 0 && !_fieldMasked(tableKey, k));
   if (!active.length) return '';
   const cfg = tableColumnConfig(tableKey);
   const labelOf = k => escapeHtml(cfg.find(c => c.key === k)?.label || k);
@@ -7639,9 +7733,9 @@ function renderProducts() {
 
   data = applyColumnFiltersToData(data, 'products');
 
-  // Sort
+  // Sort (never by a field this person may not see: the order would give it away)
   const sort = state.sortState.products;
-  if (sort && sort.field) data = sortData(data, sort.field, sort.direction);
+  if (sort && sort.field && !_fieldMasked('products', sort.field)) data = sortData(data, sort.field, sort.direction);
 
   const total = data.length;
   const page = _pageFor('products', total, [search, catFilter, columnFilters.products, state.sortState.products]);
@@ -7675,7 +7769,7 @@ function renderProducts() {
     const bi = _pCfg.findIndex(c => c.key === b.key);
     return (ai < 0 ? 99 : ai) - (bi < 0 ? 99 : bi);
   });
-  const _pVisible = _pOrdered.filter(c => c.isCustom || _pVis(c.key));
+  const _pVisible = _pOrdered.filter(c => (c.isCustom || _pVis(c.key)) && !_fieldMasked('products', c.key));
 
   let html = `${renderFilterBadges('products')}<table class="data-table">
     <thead><tr>
@@ -7689,7 +7783,7 @@ function renderProducts() {
     html += `<tr><td colspan="${_prodTotalCols}"><div class="empty-state"><svg><use href="#icon-products"/></svg><h3>No products found</h3><p>Add your first product to get started</p></div></td></tr>`;
   } else {
     pageData.forEach((p, i) => {
-      const stockBadge = p.inStock <= 0 ? 'badge-danger' : p.inStock <= (state.settings.lowStockThreshold || 5) ? 'badge-warning' : 'badge-success';
+      const stockBadge = p.inStock <= 0 ? 'badge-danger' : p.inStock <= _lowStockThreshold() ? 'badge-warning' : 'badge-success';
       const margin = p.salesPrice > 0 ? (((p.salesPrice - p.purchasePrice) / p.salesPrice) * 100).toFixed(1) : 0;
       const marginClass = margin >= 0 ? 'margin-positive' : 'margin-negative';
       const cellMap = {
@@ -7768,11 +7862,20 @@ async function hydrateImages(root) {
   }
 }
 
-function openProductModal(editId) {
+/** The prices a copy takes from its original when its creator may not see them (duplicateProduct). */
+let _productPriceCarry = null;
+
+function openProductModal(editId, priceSource) {
   if (editId && !canAccess('products','edit')) { showToast('No edit permission','error'); return; }
   if (!editId && !canAccess('products','add')) { showToast('No add permission','error'); return; }
   const p = editId ? state.products.find(x => x.id === editId) : null;
   const title = p ? 'Edit Product' : 'Add New Product';
+  // Without "See Prices": editing a product (or copying one) shows no prices
+  // and keeps the existing ones; a brand-new product still has its prices
+  // typed in, which reveals nothing already stored.
+  _productPriceCarry = (!p && priceSource && !_seePrices())
+    ? { purchasePrice: priceSource.purchasePrice, salesPrice: priceSource.salesPrice } : null;
+  const _priceInputs = _seePrices() || (!p && !_productPriceCarry);
 
   const body = `
     <div class="form-grid">
@@ -7840,14 +7943,17 @@ function openProductModal(editId) {
         </div>
         <span class="form-hint">Tap a swatch to set the colour and its name, or use the square for a custom shade.</span>
       </div>
-      <div class="form-group">
+      ${_priceInputs ? `<div class="form-group">
         <label class="form-label">Cost Price <span class="required">*</span></label>
         <input class="form-control" id="pBuyPrice" type="number" step="0.01" min="0" value="${p?.purchasePrice || ''}">
       </div>
       <div class="form-group">
         <label class="form-label">Sales Price <span class="required">*</span></label>
         <input class="form-control" id="pSellPrice" type="number" step="0.01" min="0" value="${p?.salesPrice || ''}">
-      </div>
+      </div>` : `<div class="form-group full-width">
+        <span class="form-hint">${p ? 'Cost and sales price are hidden for your role (See Prices). They stay as they are when you save.'
+          : 'Cost and sales price are copied from the original product. They are hidden for your role (See Prices).'}</span>
+      </div>`}
       <div class="form-group">
         <label class="form-label">In Stock</label>
         <input class="form-control" id="pStock" type="number" min="0" value="${p?.inStock ?? 0}"
@@ -8057,8 +8163,12 @@ function previewProductImage(event) {
 
 function saveProduct(editId) {
   const name = document.getElementById('pName').value.trim();
-  const buyPrice = parseFloat(document.getElementById('pBuyPrice').value);
-  const sellPrice = parseFloat(document.getElementById('pSellPrice').value);
+  // No price inputs = prices hidden from this person (See Prices): an edit
+  // keeps the stored prices, a copy takes its original's (_productPriceCarry).
+  const _buyEl = document.getElementById('pBuyPrice'), _sellEl = document.getElementById('pSellPrice');
+  const _priceFrom = _buyEl ? null : ((editId ? state.products.find(x => x.id === editId) : _productPriceCarry) || {});
+  const buyPrice = _buyEl ? parseFloat(_buyEl.value) : (Number(_priceFrom.purchasePrice) || 0);
+  const sellPrice = _sellEl ? parseFloat(_sellEl.value) : (Number(_priceFrom.salesPrice) || 0);
 
   if (!name) { showToast('Product name is required', 'error'); return; }
   if (isNaN(buyPrice) || buyPrice < 0) { showToast('Valid cost price is required', 'error'); return; }
@@ -8103,6 +8213,7 @@ function saveProduct(editId) {
   // whole record is last-write-wins, so saving a price change on a device that
   // was behind used to put back a stock level that sales elsewhere had moved.
   if (editId && !_stockEditableInForm()) delete data.inStock;
+  if (editId && !_buyEl) { delete data.purchasePrice; delete data.salesPrice; }
   if (!validateCustomFields('products')) return;
   const customFieldValues = collectCustomFieldValues();
   if (customFieldValues) data.customFields = { ...(editId ? state.products.find(x => x.id === editId)?.customFields : {}), ...customFieldValues };
@@ -8330,7 +8441,7 @@ function duplicateProduct(id) {
   if (!p) return;
   // Open the add product modal pre-filled with the duplicate's data
   // Barcode is NOT copied — a new one will be auto-generated on save (permanent unique identifier)
-  openProductModal(); // opens blank modal
+  openProductModal(null, p); // opens blank modal; p supplies the prices if they are hidden from this person
   // After modal opens, fill in the values from the source product
   setTimeout(() => {
     document.getElementById('pName').value = p.name + ' (Copy)';
@@ -8339,8 +8450,9 @@ function duplicateProduct(id) {
     document.getElementById('pCategory').value = p.category || '';
     document.getElementById('pColor').value = p.color || '';
     document.getElementById('pColorHex').value = p.colorHex || '#000000';
-    document.getElementById('pBuyPrice').value = p.purchasePrice || '';
-    document.getElementById('pSellPrice').value = p.salesPrice || '';
+    const _buy = document.getElementById('pBuyPrice'), _sell = document.getElementById('pSellPrice');
+    if (_buy) _buy.value = p.purchasePrice || '';
+    if (_sell) _sell.value = p.salesPrice || '';
     document.getElementById('pStock').value = p.inStock || 0;
     document.getElementById('pDesc').value = p.description || '';
     if (p.isMagSafe) document.getElementById('pMagSafe').checked = true;
@@ -10085,7 +10197,7 @@ function renderCustomers() {
   data = applyColumnFiltersToData(data, 'customers');
 
   const sort = state.sortState.customers;
-  if (sort && sort.field) data = sortData(data, sort.field, sort.direction);
+  if (sort && sort.field && !_fieldMasked('customers', sort.field)) data = sortData(data, sort.field, sort.direction);
 
   const total = data.length;
   const page = _pageFor('customers', total, [search, columnFilters.customers, state.sortState.customers]);
@@ -10112,7 +10224,7 @@ function renderCustomers() {
     const bi = _cCfg.findIndex(c => c.key === b.key);
     return (ai < 0 ? 99 : ai) - (bi < 0 ? 99 : bi);
   });
-  const _cVisible = _cOrdered.filter(c => c.isCustom || _cVis(c.key));
+  const _cVisible = _cOrdered.filter(c => (c.isCustom || _cVis(c.key)) && !_fieldMasked('customers', c.key));
 
   let html = `${renderFilterBadges('customers')}<table class="data-table"><thead><tr>
     <th style="width:50px">#</th>
@@ -10157,8 +10269,15 @@ function renderCustomers() {
 }
 
 function openCustomerModal(editId) {
+  if (!canAccess('customers', editId ? 'edit' : 'add')) {
+    if (editId && canAccess('customers', 'view')) return viewCustomerOrders(editId);
+    showToast(editId ? 'No edit permission' : 'No add permission', 'error'); return;
+  }
   const c = editId ? state.customers.find(x => x.id === editId) : null;
   const title = c ? 'Edit Customer' : 'Add New Customer';
+  // Without "See Contact" an edit shows no phone or email and keeps the stored
+  // ones; a new customer can still be given them.
+  const _contact = !c || !_fieldMasked('customers', 'phone');
 
   const body = `
     <div class="form-grid">
@@ -10182,14 +10301,16 @@ function openCustomerModal(editId) {
         <label class="form-label">ZIP Code</label>
         <input class="form-control" id="cZip" value="${escapeHtml(c?.zip || '')}">
       </div>
-      <div class="form-group">
+      ${_contact ? `<div class="form-group">
         <label class="form-label">Phone</label>
         <input class="form-control" id="cPhone" type="tel" value="${escapeHtml(c?.phone || '')}">
       </div>
       <div class="form-group full-width">
         <label class="form-label">Email</label>
         <input class="form-control" id="cEmail" type="email" value="${escapeHtml(c?.email || '')}">
-      </div>
+      </div>` : `<div class="form-group full-width">
+        <span class="form-hint">Phone and email are hidden for your role (See Contact). They stay as they are when you save.</span>
+      </div>`}
       ${renderCustomFieldInputs('customers', c)}
     </div>`;
 
@@ -10202,19 +10323,23 @@ function openCustomerModal(editId) {
 }
 
 function saveCustomer(editId) {
+  if (!canAccess('customers', editId ? 'edit' : 'add')) { showToast(editId ? 'No edit permission' : 'No add permission', 'error'); return; }
   const name = document.getElementById('cName').value.trim();
   if (!name) { showToast('Customer name is required', 'error'); return; }
 
+  const _phoneEl = document.getElementById('cPhone'), _emailEl = document.getElementById('cEmail');
   const data = {
     name,
     address: document.getElementById('cAddress').value.trim(),
     city: document.getElementById('cCity').value.trim(),
     state: document.getElementById('cState').value.trim(),
     zip: document.getElementById('cZip').value.trim(),
-    phone: document.getElementById('cPhone').value.trim(),
-    email: document.getElementById('cEmail').value.trim(),
+    phone: _phoneEl ? _phoneEl.value.trim() : '',
+    email: _emailEl ? _emailEl.value.trim() : '',
     updatedAt: new Date().toISOString(),
   };
+  // No contact inputs = hidden from this person (See Contact): keep the stored ones.
+  if (!_phoneEl) { delete data.phone; delete data.email; }
   if (!validateCustomFields('customers')) return;
   const customFieldValues = collectCustomFieldValues();
   if (customFieldValues) data.customFields = { ...(editId ? state.customers.find(x => x.id === editId)?.customFields : {}), ...customFieldValues };
@@ -10267,7 +10392,7 @@ function renderSuppliers() {
   data = applyColumnFiltersToData(data, 'suppliers');
 
   const sort = state.sortState.suppliers;
-  if (sort && sort.field) data = sortData(data, sort.field, sort.direction);
+  if (sort && sort.field && !_fieldMasked('suppliers', sort.field)) data = sortData(data, sort.field, sort.direction);
 
   const total = data.length;
   const page = _pageFor('suppliers', total, [search, columnFilters.suppliers, state.sortState.suppliers]);
@@ -10295,7 +10420,7 @@ function renderSuppliers() {
     const bi = _sCfg.findIndex(c => c.key === b.key);
     return (ai < 0 ? 99 : ai) - (bi < 0 ? 99 : bi);
   });
-  const _sVisible = _sOrdered.filter(c => c.isCustom || _sVis(c.key));
+  const _sVisible = _sOrdered.filter(c => (c.isCustom || _sVis(c.key)) && !_fieldMasked('suppliers', c.key));
 
   let html = `${renderFilterBadges('suppliers')}<table class="data-table"><thead><tr>
     <th style="width:50px">#</th>
@@ -10341,8 +10466,14 @@ function renderSuppliers() {
 }
 
 function openSupplierModal(editId) {
+  if (!canAccess('suppliers', editId ? 'edit' : 'add')) {
+    if (editId && canAccess('suppliers', 'view')) return viewSupplierOrders(editId);
+    showToast(editId ? 'No edit permission' : 'No add permission', 'error'); return;
+  }
   const s = editId ? state.suppliers.find(x => x.id === editId) : null;
   const title = s ? 'Edit Supplier' : 'Add New Supplier';
+  // As openCustomerModal: no phone or email on an edit without "See Contact".
+  const _contact = !s || !_fieldMasked('suppliers', 'phone');
 
   const body = `
     <div class="form-grid">
@@ -10370,14 +10501,16 @@ function openSupplierModal(editId) {
         <label class="form-label">ZIP Code</label>
         <input class="form-control" id="sZip" value="${escapeHtml(s?.zip || '')}">
       </div>
-      <div class="form-group">
+      ${_contact ? `<div class="form-group">
         <label class="form-label">Phone</label>
         <input class="form-control" id="sPhone" type="tel" value="${escapeHtml(s?.phone || '')}">
       </div>
       <div class="form-group full-width">
         <label class="form-label">Email</label>
         <input class="form-control" id="sEmail" type="email" value="${escapeHtml(s?.email || '')}">
-      </div>
+      </div>` : `<div class="form-group full-width">
+        <span class="form-hint">Phone and email are hidden for your role (See Contact). They stay as they are when you save.</span>
+      </div>`}
       ${renderCustomFieldInputs('suppliers', s)}
     </div>`;
 
@@ -10390,9 +10523,11 @@ function openSupplierModal(editId) {
 }
 
 function saveSupplier(editId) {
+  if (!canAccess('suppliers', editId ? 'edit' : 'add')) { showToast(editId ? 'No edit permission' : 'No add permission', 'error'); return; }
   const name = document.getElementById('sName').value.trim();
   if (!name) { showToast('Supplier name is required', 'error'); return; }
 
+  const _phoneEl = document.getElementById('sPhone'), _emailEl = document.getElementById('sEmail');
   const data = {
     name,
     contactPerson: document.getElementById('sContact').value.trim(),
@@ -10400,10 +10535,12 @@ function saveSupplier(editId) {
     city: document.getElementById('sCity').value.trim(),
     state: document.getElementById('sState').value.trim(),
     zip: document.getElementById('sZip').value.trim(),
-    phone: document.getElementById('sPhone').value.trim(),
-    email: document.getElementById('sEmail').value.trim(),
+    phone: _phoneEl ? _phoneEl.value.trim() : '',
+    email: _emailEl ? _emailEl.value.trim() : '',
     updatedAt: new Date().toISOString(),
   };
+  // No contact inputs = hidden from this person (See Contact): keep the stored ones.
+  if (!_phoneEl) { delete data.phone; delete data.email; }
   if (!validateCustomFields('suppliers')) return;
   const customFieldValues = collectCustomFieldValues();
   if (customFieldValues) data.customFields = { ...(editId ? state.suppliers.find(x => x.id === editId)?.customFields : {}), ...customFieldValues };
@@ -10574,6 +10711,12 @@ function renderOrders(type) {
 }
 
 function openOrderModal(type, editId) {
+  if (!canAccess(type, editId ? 'edit' : 'add')) {
+    // A tap on an order card lands here too: show the order instead.
+    if (editId && canAccess(type, 'view')) return viewOrder(editId);
+    showToast(_orderEntryDenied(type, editId ? 'edit' : 'add'), 'error');
+    return;
+  }
   const orderType = type === 'sales' ? 'Sales' : 'Purchase';
   const o = editId ? state.orders.find(x => x.id === editId) : null;
   const title = o ? `Edit ${orderType} Order` : `New ${orderType} Order`;
@@ -11012,6 +11155,7 @@ function resetOrderTaxAuto() {
 }
 
 function saveOrder(type, editId) {
+  if (!canAccess(type, editId ? 'edit' : 'add')) { showToast(_orderEntryDenied(type, editId ? 'edit' : 'add'), 'error'); return; }
   const orderType = type === 'sales' ? 'Sales' : 'Purchase';
   const partyId = parseInt(document.getElementById('oParty').value);
   const date = document.getElementById('oDate').value;
@@ -11140,6 +11284,30 @@ function _carryLineCosts(prev, next) {
   }
 }
 
+/**
+ * What one unit on a purchase line really cost: its price plus its share of the
+ * shipping and packaging paid on that purchase - the line's own amounts when
+ * they were entered per item, otherwise the order's split by line value (by
+ * quantity if the lines have no value). GST is not included.
+ */
+function _landedUnitCost(order, item) {
+  const num = v => Number(v) || 0;
+  const qty = num(item.quantity), price = num(item.price);
+  if (qty <= 0) return price;
+  let extra;
+  if (order.perItemSP) {
+    extra = num(item.shipping) + num(item.packaging);
+  } else {
+    const charges = num(order.shipping) + num(order.packaging);
+    if (!charges) return price;
+    const items = order.items || [];
+    const value = items.reduce((s, it) => s + num(it.quantity) * num(it.price), 0);
+    const units = items.reduce((s, it) => s + num(it.quantity), 0) || qty;
+    extra = charges * (value > 0 ? (qty * price) / value : qty / units);
+  }
+  return price + extra / qty;
+}
+
 // Updated 24-05-2026: Updated the complete function.
 function updateStockForOrder(order, reverse) {
     if (!order || !order.items) return;
@@ -11150,19 +11318,24 @@ function updateStockForOrder(order, reverse) {
 
         // Weighted Average Cost (WAC) update on Purchase orders.
         // Forward: snapshot the prior avgCost on the item, then recompute against pre-update stock.
-        // Reverse: restore the snapshot so an "un-complete" cleanly rewinds avgCost.
-        // Shipping/packaging/tax are excluded from cost basis - only item.price x quantity counts.
+        // Reverse: take this purchase back out of the average (below).
+        // The unit cost is the LANDED cost (3.18): price plus this line's share of
+        // the shipping and packaging paid on the purchase (_landedUnitCost),
+        // recorded on the line as landedCost so the reverse takes out exactly
+        // what went in. GST is left out - it is claimed back.
         if (order.type === 'Purchase') {
             if (!reverse) {
                 const priorAvg = (product.avgCost !== undefined && product.avgCost !== null && !isNaN(product.avgCost))
                     ? product.avgCost
                     : (product.purchasePrice || 0);
                 item._priorAvgCost = priorAvg;
+                const unit = _landedUnitCost(order, item);
+                item.landedCost = Math.round(unit * 10000) / 10000;
                 const priorStock = Math.max(0, product.inStock); // inStock has not been changed yet
                 const addQty = item.quantity || 0;
                 const newStock = priorStock + addQty;
                 if (newStock > 0) {
-                    product.avgCost = ((priorStock * priorAvg) + (addQty * (item.price || 0))) / newStock;
+                    product.avgCost = ((priorStock * priorAvg) + (addQty * item.landedCost)) / newStock;
                 }
               } else {
                 // Take this purchase back OUT of the average, arithmetically.
@@ -11176,8 +11349,11 @@ function updateStockForOrder(order, reverse) {
                 const remaining = curStock - qty;
                 const curAvg = (product.avgCost !== undefined && product.avgCost !== null && !isNaN(product.avgCost))
                     ? product.avgCost : (product.purchasePrice || 0);
+                // A line applied before 3.18 has no landedCost: it went in at its price.
+                const unitIn = Number.isFinite(Number(item.landedCost)) && item.landedCost !== null && item.landedCost !== ''
+                    ? Number(item.landedCost) : (item.price || 0);
                 if (remaining > 0) {
-                    const v = (curStock * curAvg - qty * (item.price || 0)) / remaining;
+                    const v = (curStock * curAvg - qty * unitIn) / remaining;
                     if (isFinite(v) && v >= 0) product.avgCost = v;
                 }
                 // Nothing left to average over: keep the current figure.
@@ -11574,6 +11750,50 @@ const _seePurch = () => canAccess('purchases', 'viewValues');
 const _seePrices = () => canAccess('products', 'viewPrices');
 const _HIDDEN = '***';
 
+/**
+ * Fields a person may not see on screen without "See Prices" / "See Contact"
+ * (26 Sep review, row 3). Exports always blanked them (EXPORT_MASKED_COLUMNS),
+ * but the tables, phone cards, filters, sorting, search and edit forms showed
+ * them to everyone. A masked field is now left out entirely - no column, no
+ * card chip, no filter, no sort, no search hit - and an edit form that does
+ * not show it keeps the stored value when saved.
+ */
+const SCREEN_MASKED_FIELDS = {
+  products:  { perm: 'viewPrices',  keys: ['purchasePrice', 'salesPrice', 'margin'] },
+  customers: { perm: 'viewContact', keys: ['phone', 'email'] },
+  suppliers: { perm: 'viewContact', keys: ['phone', 'email'] },
+};
+function _maskedFields(tableKey) {
+  const m = SCREEN_MASKED_FIELDS[tableKey];
+  return m && !canAccess(tableKey, m.perm) ? m.keys : [];
+}
+function _fieldMasked(tableKey, key) { return _maskedFields(tableKey).includes(key); }
+
+/** What is still owed on an order: its total less what was paid ("Unpaid" when no status is set, as the order form assumes). */
+function _orderOutstanding(o) {
+  const total = Number(o.total) || 0;
+  if ((o.paymentStatus || 'Unpaid') === 'Paid') return 0;
+  const paid = Math.min(total, Math.max(0, Number(o.amountPaid) || 0));
+  return Math.max(0, total - paid);
+}
+
+/** Low-stock threshold. 0 is a real setting (out-of-stock alerts only), not "unset". */
+function _lowStockThreshold() {
+  const v = state.settings && state.settings.lowStockThreshold;
+  const n = (v === '' || v == null) ? NaN : Number(v);
+  return Number.isFinite(n) && n >= 0 ? Math.floor(n) : 5;
+}
+
+/** Monthly chart: with or without GST (this device's choice; off = goods value before GST, like the KPIs). */
+function _chartInclGst() {
+  try { return localStorage.getItem('covervault.chartInclGst') === '1'; } catch (e) { return false; }
+}
+function _setChartInclGst(on) {
+  try { localStorage.setItem('covervault.chartInclGst', on ? '1' : '0'); } catch (e) { /* private mode: just this view */ }
+  renderMonthlyChart(_dashFilterYears.length > 0 ? _dashFilterYears : 0, _dashFilterCategories.length > 0
+    ? new Set(state.products.filter(p => _dashFilterCategories.includes(p.category)).map(p => p.id)) : null, on);
+}
+
 function renderDashboard() {
   const now = new Date();
   const currentYear = now.getFullYear();
@@ -11582,6 +11802,7 @@ function renderDashboard() {
   const _dpEarly = currentUser?.permissions?.dashboard || {};
   const wb = document.getElementById('welcomeBanner');
   if (wb) wb.style.display = (_dpEarly.viewWelcomeBanner === false) ? 'none' : '';
+  renderBackupReminder();
 
   // Build filter bar chips
   const filterBar = document.getElementById('dashFilterBar');
@@ -11645,46 +11866,77 @@ function renderDashboard() {
   const totalProducts = filteredProducts.length;
   const totalCustomers = state.customers.length;
   const totalSuppliers = state.suppliers.length;
-  // Updated 24-05-2026: Below formula and added avgCost condition.
+  // Stock at its average cost (landed cost for purchases completed from 3.18).
   const totalInventoryValue = filteredProducts.reduce((sum, p) => sum + ((p.avgCost ?? p.purchasePrice ?? 0) * p.inStock), 0);
   const totalStockUnits = filteredProducts.reduce((sum, p) => sum + p.inStock, 0);
-  const lowStockCount = filteredProducts.filter(p => p.inStock > 0 && p.inStock <= (state.settings.lowStockThreshold || 5)).length;
+  const lowLimit = _lowStockThreshold();
+  const lowStockCount = filteredProducts.filter(p => p.inStock > 0 && p.inStock <= lowLimit).length;
   const outOfStockCount = filteredProducts.filter(p => p.inStock <= 0).length;
 
   const allOrders = filterByKpiPeriod(state.orders);
-  const salesOrders = allOrders.filter(o => o.type === 'Sales');
-  const purchaseOrders = allOrders.filter(o => o.type === 'Purchase');
+  // A cancelled order is not an order any more: it counts on the Cancelled
+  // card and nowhere else (the order totals used to include it).
+  const liveOrders = allOrders.filter(o => o.status !== 'Cancelled');
+  const salesOrders = liveOrders.filter(o => o.type === 'Sales');
+  const purchaseOrders = liveOrders.filter(o => o.type === 'Purchase');
+  const cancelledOrders = allOrders.length - liveOrders.length;
   // With a category filter, only the lines in those categories count.
   const linePred = categoryProductIds ? (it => categoryProductIds.has(it.productId)) : null;
-  const doneSales = salesOrders.filter(o => o.status === 'Completed').map(o => _orderShare(o, linePred));
-  const donePurch = purchaseOrders.filter(o => o.status === 'Completed').map(o => _orderShare(o, linePred));
-  const totalSalesRevenue = doneSales.reduce((sum, s) => sum + s.total, 0);
-  const totalPurchases = donePurch.reduce((sum, s) => sum + s.total, 0);
-  const totalOrders = allOrders.length;
-  const pendingOrders = allOrders.filter(o => o.status === 'Pending').length;
-  const unpaidOrders = allOrders.filter(o => o.paymentStatus === 'Unpaid' || o.paymentStatus === 'Partial').length;
-  const cancelledOrders = allOrders.filter(o => o.status === 'Cancelled').length;
-  // Tax is collected for the government, not earned, so profit is worked out
-  // on the amounts BEFORE tax (it used to count GST collected as profit). The
-  // cost is what the goods SOLD cost (_salesCost), not what was bought in the
-  // period - the same basis as the Profit report and Product Analysis.
-  const salesBeforeTax = doneSales.reduce((s, x) => s + x.subtotal, 0);
-  const cogs = _salesCost(salesOrders.filter(o => o.status === 'Completed'), linePred);
-  const grossProfit = salesBeforeTax - cogs.cost;
-  const grossProfitPct = salesBeforeTax > 0 ? ((grossProfit / salesBeforeTax) * 100).toFixed(1) : 0;
+  const doneSalesOrders = salesOrders.filter(o => o.status === 'Completed');
+  const donePurchOrders = purchaseOrders.filter(o => o.status === 'Completed');
+  const doneSales = doneSalesOrders.map(o => _orderShare(o, linePred));
+  const donePurch = donePurchOrders.map(o => _orderShare(o, linePred));
+  const sumOf = (arr, k) => arr.reduce((s, x) => s + (Number(x[k]) || 0), 0);
+  // Money is compared BEFORE tax on both sides: GST collected is owed to the
+  // government and GST paid is claimed back, so neither is income or cost.
+  // Shipping and packaging have cards of their own.
+  const grossSales = sumOf(doneSales, 'subtotal');
+  const totalBilled = sumOf(doneSales, 'total');
+  const salesTax = sumOf(doneSales, 'tax'), purchTax = sumOf(donePurch, 'tax');
+  const shipIn = sumOf(doneSales, 'shipping'), shipOut = sumOf(donePurch, 'shipping');
+  const packIn = sumOf(doneSales, 'packaging'), packOut = sumOf(donePurch, 'packaging');
+  const purchBeforeTax = sumOf(donePurch, 'subtotal');
+  const purchTotal = sumOf(donePurch, 'total');
+  // Profit = sales before tax minus what the goods sold cost (_salesCost): the
+  // same basis as the Profit report and Product Analysis.
+  const cogs = _salesCost(doneSalesOrders, linePred);
+  const grossProfit = grossSales - cogs.cost;
+  const grossProfitPct = grossSales > 0 ? ((grossProfit / grossSales) * 100).toFixed(1) : 0;
+
+  // Pending and unpaid are work still to do, whenever the order was placed,
+  // so the year / month filter does not hide an old one. Category still applies.
+  const openOrders = state.orders.filter(o => o.status !== 'Cancelled'
+    && (!categoryProductIds || (o.items || []).some(it => categoryProductIds.has(it.productId))));
+  const pendingSales = openOrders.filter(o => o.type === 'Sales' && o.status === 'Pending').length;
+  const pendingPurch = openOrders.filter(o => o.type === 'Purchase' && o.status === 'Pending').length;
+  const owed = type => {
+    let amount = 0, count = 0;
+    for (const o of openOrders) {
+      if (o.type !== type) continue;
+      const due = _orderOutstanding(o);
+      if (due < 0.005) continue;
+      const total = Number(o.total) || 0;
+      const f = linePred && total > 0 ? _orderShare(o, linePred).total / total : 1;
+      amount += due * f; count++;
+    }
+    return { amount, count };
+  };
+  const toCollect = owed('Sales'), toPay = owed('Purchase');
 
   // KPI Cards
-  const dp = currentUser?.permissions?.dashboard || { view:true, viewSalesKpi:true, viewPurchaseKpi:true, viewStockAlerts:true, viewRecentOrders:true, viewCharts:true, viewGrossProfitKpi:true, viewInventoryValueKpi:true, viewTotalOrdersKpi:true, viewPendingKpi:true, viewUnpaidKpi:true, viewCancelledKpi:true, viewGrossSalesKpi:true, viewNetSalesKpi:true, viewProductsKpi:true, viewCustomersKpi:true, viewSuppliersKpi:true };
+  const dp = currentUser?.permissions?.dashboard || {};
   let kpiHtml = '';
 
-  const grossSales = salesBeforeTax;
-  const netSales = totalSalesRevenue;
-  const salesTax = doneSales.reduce((s, x) => s + x.tax, 0);
   const retailValue = filteredProducts.reduce((s,p) => s + (p.salesPrice * p.inStock), 0);
-  // Values a user may not see are masked here exactly as in the order tables
-  // (the tables honoured "See Values"; the dashboard showed the same totals).
+  // Values a user may not see are masked here exactly as in the order tables.
   const seeS = _seeSales(), seeP = _seePurch(), seeCost = _seePrices();
+  const viewS = canAccess('sales', 'view'), viewP = canAccess('purchases', 'view');
+  // Profit is sales minus what the goods cost, so it reveals cost: it needs
+  // "See Prices" as well (as Product Analysis's margins always did).
+  const seeProfit = seeS && seeP && seeCost;
   const money = (ok, v) => ok ? formatCurrencyCompact(v) : _HIDDEN;
+  const fc = v => formatCurrency(v);
+  const orders = n => `${n.toLocaleString('en-IN')} order${n === 1 ? '' : 's'}`;
   const hiddenTip = 'Hidden - needs the "See Values" / "See Prices" permission';
 
   // Helper: KPI card with tooltip
@@ -11694,36 +11946,78 @@ function renderDashboard() {
     const subHtml = subtitle ? `<div class="kpi-sub">${subtitle}</div>` : '';
     return `<div class="kpi-card" data-accent="${accent}"><div class="kpi-tooltip">${tooltip}</div><div class="kpi-header"><div class="kpi-icon ${iconColor}"><svg><use href="#icon-${svg}"/></svg></div><div class="kpi-label">${label}</div></div><div class="kpi-info"><div class="kpi-value">${value}</div>${subHtml}</div></div>`;
   }
+  // Two figures side by side (tax collected | paid, ...); spans two grid cells.
+  function kpiSplit(accent, iconColor, label, left, right, tooltip, svgOverride, subtitle) {
+    const svg = svgOverride || _kpiIconMap[iconColor] || 'report';
+    const half = h => `<div class="kpi-half"><div class="kpi-half-label">${h.label}</div><div class="kpi-value">${h.value}</div>${h.sub ? `<div class="kpi-sub">${h.sub}</div>` : ''}</div>`;
+    return `<div class="kpi-card kpi-split" data-accent="${accent}"><div class="kpi-tooltip">${tooltip}</div><div class="kpi-header"><div class="kpi-icon ${iconColor}"><svg><use href="#icon-${svg}"/></svg></div><div class="kpi-label">${label}</div>${subtitle ? `<div class="kpi-split-sub">${subtitle}</div>` : ''}</div><div class="kpi-halves">${half(left)}${half(right)}</div></div>`;
+  }
+  // "net ₹X" for a received | paid pair, when both sides may be seen.
+  const net = (inAmt, outAmt, posWord, negWord) => (seeS && seeP)
+    ? (inAmt - outAmt >= 0 ? `${posWord} ${formatCurrencyCompact(inAmt - outAmt)}` : `${negWord} ${formatCurrencyCompact(outAmt - inAmt)}`) : '';
 
-  // Row 1: Revenue & Orders
-  if (dp.viewGrossSalesKpi !== false && canAccess('sales','view'))
-    kpiHtml += kpi('green','green','Gross Sales',money(seeS, grossSales),seeS ? `Subtotals before tax = ${formatCurrency(grossSales)}` : hiddenTip,null,`excl. tax`);
-  if (dp.viewNetSalesKpi !== false && canAccess('sales','view'))
-    kpiHtml += kpi('green','green','Net Sales',money(seeS, netSales),seeS ? `Totals incl. tax = ${formatCurrency(netSales)} &middot; Tax: ${formatCurrency(salesTax)}` : hiddenTip,null,seeS ? `tax: ${formatCurrencyCompact(salesTax)}` : '');
-  if (dp.viewPurchaseKpi !== false && canAccess('purchases','view'))
-    kpiHtml += kpi('pink','pink','Purchases',money(seeP, totalPurchases),seeP ? `Completed purchases = ${formatCurrency(totalPurchases)} &middot; ${purchaseOrders.filter(o=>o.status==='Completed').length} orders` : hiddenTip,null,`${purchaseOrders.filter(o=>o.status==='Completed').length} completed`);
-  if (dp.viewGrossProfitKpi !== false && canAccess('sales','view'))
-    kpiHtml += kpi(grossProfit>=0?'green':'pink',grossProfit>=0?'green':'pink','Gross Profit',money(seeS && seeP, grossProfit),(seeS && seeP) ? `Formula: Gross Profit = sales before tax &minus; what the goods sold cost you (each product's average cost when it was sold). Buying stock is not a cost until it sells; tax is not profit. Cost of goods sold = ${formatCurrency(cogs.cost)}. Margin % = Gross Profit &divide; sales before tax &times; 100. Same basis as the Profit report.${cogs.estimated ? ` ${cogs.estimated} sale line(s) from before this was recorded use today's average cost.` : ''}` : hiddenTip,null,(seeS && seeP) ? `${grossProfitPct}% margin` : '');
+  // Row 1: money
+  if (dp.viewGrossSalesKpi !== false && viewS)
+    kpiHtml += kpi('green','green','Gross Sales',money(seeS, grossSales),seeS ? `Completed sales, goods value before GST = ${fc(grossSales)}. Shipping and packaging charged have their own cards.` : hiddenTip,null,`excl. GST`);
+  if (dp.viewNetSalesKpi !== false && viewS)
+    kpiHtml += kpi('green','green','Total Billed',money(seeS, totalBilled),seeS ? `What customers were invoiced: goods ${fc(grossSales)} + GST ${fc(salesTax)} + shipping ${fc(shipIn)} + packaging ${fc(packIn)} = ${fc(totalBilled)}` : hiddenTip,null,`incl. GST &amp; charges`);
+  if (dp.viewPurchaseKpi !== false && viewP)
+    kpiHtml += kpi('pink','pink','Purchases',money(seeP, purchBeforeTax),seeP ? `Completed purchases, goods value before GST = ${fc(purchBeforeTax)} (comparable with Gross Sales). With GST, shipping and packaging you paid ${fc(purchTotal)} in all.` : hiddenTip,null,`${donePurchOrders.length} completed · excl. GST`);
+  if (dp.viewGrossProfitKpi !== false && viewS)
+    kpiHtml += kpi(grossProfit>=0?'green':'pink',grossProfit>=0?'green':'pink','Gross Profit',money(seeProfit, grossProfit),seeProfit ? `Gross Profit = sales before GST &minus; what the goods sold cost you = ${fc(grossSales)} &minus; ${fc(cogs.cost)}. A product's cost is its average landed cost when it was sold: purchase price plus the shipping and packaging paid on that purchase (purchases completed before 3.18 count the price only). Margin % = Gross Profit &divide; sales before GST &times; 100. Same basis as the Profit report.${cogs.estimated ? ` ${cogs.estimated} sale line(s) from before costs were recorded use today's average cost.` : ''}` : hiddenTip,null,seeProfit ? `${grossProfitPct}% margin` : '');
+  if (dp.viewTaxKpi !== false && ((viewS && seeS) || (viewP && seeP)))
+    kpiHtml += kpiSplit('blue','blue','Tax (GST)',
+      { label: 'Collected', value: money(seeS && viewS, salesTax), sub: 'on sales' },
+      { label: 'Paid', value: money(seeP && viewP, purchTax), sub: 'on purchases' },
+      `GST on completed orders in the period. Collected on sales is owed to the government; paid on purchases can usually be claimed back (input tax credit). Net = collected &minus; paid.`,
+      'report', net(salesTax, purchTax, 'net payable', 'net credit'));
+  if (dp.viewUnpaidKpi !== false && (viewS || viewP))
+    kpiHtml += kpiSplit('orange','orange','Unpaid',
+      { label: 'To collect', value: viewS ? money(seeS, toCollect.amount) : _HIDDEN, sub: viewS ? orders(toCollect.count) : '' },
+      { label: 'To pay', value: viewP ? money(seeP, toPay.amount) : _HIDDEN, sub: viewP ? orders(toPay.count) : '' },
+      `Money still owed on orders that are not cancelled, whatever their date: each order's total less what has been paid. To collect = customers owe you; to pay = you owe suppliers.`,
+      'warning', 'all dates');
+
+  // Row 2: charges and orders
+  if (dp.viewShippingKpi !== false && ((viewS && seeS) || (viewP && seeP)))
+    kpiHtml += kpiSplit('teal','teal','Shipping',
+      { label: 'Received', value: money(seeS && viewS, shipIn), sub: 'on sales' },
+      { label: 'Paid', value: money(seeP && viewP, shipOut), sub: 'on purchases' },
+      `Shipping on completed orders in the period: charged to customers on sales, paid to suppliers on purchases (from 3.18 part of the product's landed cost).`,
+      'share', net(shipIn, shipOut, 'net', 'net cost'));
+  if (dp.viewPackagingKpi !== false && ((viewS && seeS) || (viewP && seeP)))
+    kpiHtml += kpiSplit('purple','purple','Packaging',
+      { label: 'Received', value: money(seeS && viewS, packIn), sub: 'on sales' },
+      { label: 'Paid', value: money(seeP && viewP, packOut), sub: 'on purchases' },
+      `Packaging on completed orders in the period: charged to customers on sales, paid to suppliers on purchases (from 3.18 part of the product's landed cost).`,
+      'products', net(packIn, packOut, 'net', 'net cost'));
   if (dp.viewTotalOrdersKpi !== false)
-    kpiHtml += kpi('blue','blue','Total Orders',totalOrders,`Sales: ${salesOrders.length} &middot; Purchases: ${purchaseOrders.length}`,null,`${salesOrders.length} sales · ${purchaseOrders.length} purch.`);
-  if (dp.viewSalesKpi !== false && canAccess('sales','view'))
-    kpiHtml += kpi('green','green','Sales Orders',salesOrders.length,`Completed: ${salesOrders.filter(o=>o.status==='Completed').length} &middot; Pending: ${salesOrders.filter(o=>o.status==='Pending').length}`,null,`${salesOrders.filter(o=>o.status==='Completed').length} done · ${salesOrders.filter(o=>o.status==='Pending').length} pending`);
-  if (dp.viewPurchaseKpi !== false && canAccess('purchases','view'))
-    kpiHtml += kpi('pink','pink','Purchase Orders',purchaseOrders.length,`Completed: ${purchaseOrders.filter(o=>o.status==='Completed').length} &middot; Pending: ${purchaseOrders.filter(o=>o.status==='Pending').length}`,null,`${purchaseOrders.filter(o=>o.status==='Completed').length} done · ${purchaseOrders.filter(o=>o.status==='Pending').length} pending`);
-
-  // Row 2: Status & Inventory
-  if (dp.viewPendingKpi !== false)
-    kpiHtml += kpi('orange','orange','Pending',pendingOrders,`Orders with status "Pending" across sales &amp; purchases`,null,`needs attention`);
-  if (dp.viewUnpaidKpi !== false)
-    kpiHtml += kpi('orange','orange','Unpaid',unpaidOrders,`Payment status "Unpaid" or "Partial"`,null,`unpaid / partial`);
+    kpiHtml += kpi('blue','blue','Total Orders',liveOrders.length,`Sales: ${salesOrders.length} &middot; Purchases: ${purchaseOrders.length}. Cancelled orders are not counted (${cancelledOrders} in this period).`,null,`${salesOrders.length} sales · ${purchaseOrders.length} purch.`);
+  if (dp.viewSalesKpi !== false && viewS)
+    kpiHtml += kpi('green','green','Sales Orders',salesOrders.length,`Completed: ${doneSalesOrders.length} &middot; Pending: ${salesOrders.filter(o=>o.status==='Pending').length}. Cancelled not counted.`,null,`${doneSalesOrders.length} done · ${salesOrders.filter(o=>o.status==='Pending').length} pending`);
+  if (dp.viewPurchaseKpi !== false && viewP)
+    kpiHtml += kpi('pink','pink','Purchase Orders',purchaseOrders.length,`Completed: ${donePurchOrders.length} &middot; Pending: ${purchaseOrders.filter(o=>o.status==='Pending').length}. Cancelled not counted.`,null,`${donePurchOrders.length} done · ${purchaseOrders.filter(o=>o.status==='Pending').length} pending`);
   if (dp.viewCancelledKpi !== false)
-    kpiHtml += kpi('red','red','Cancelled',cancelledOrders,`Orders with status "Cancelled"`);
+    kpiHtml += kpi('red','red','Cancelled',cancelledOrders,`Orders with status "Cancelled" in the period`,null,`in the period`);
+
+  // Row 3: work to do, stock and records
+  if (dp.viewPendingKpi !== false && (viewS || viewP))
+    kpiHtml += kpiSplit('orange','orange','Pending',
+      { label: 'Sales', value: viewS ? pendingSales : _HIDDEN },
+      { label: 'Purchases', value: viewP ? pendingPurch : _HIDDEN },
+      `Orders with status "Pending", whatever their date - the period filter does not hide an old one.`,
+      'history', 'all dates');
+  if (dp.viewStockAlerts !== false)
+    kpiHtml += kpiSplit('orange','orange','Stock Alerts',
+      { label: 'Out of stock', value: outOfStockCount },
+      { label: lowLimit > 0 ? `Low (≤${lowLimit})` : 'Low (off)', value: lowLimit > 0 ? lowStockCount : '–' },
+      lowLimit > 0 ? `Out of stock: 0 or less. Low: 1 to ${lowLimit} left (threshold in Settings &rarr; Prod Config).`
+                   : `Out of stock: 0 or less. Low-stock alerts are off (threshold 0 in Settings &rarr; Prod Config).`,
+      'warning');
   if (dp.viewProductsKpi !== false && canAccess('products','view'))
     kpiHtml += kpi('purple','purple','Products',totalProducts,`${totalStockUnits} total units in stock`,null,`${totalStockUnits} units in stock`);
   if (dp.viewInventoryValueKpi !== false)
-    kpiHtml += kpi('purple','purple','Inv. Value',money(seeCost, totalInventoryValue),seeCost ? `Cost: ${formatCurrency(totalInventoryValue)} &middot; Retail: ${formatCurrency(retailValue)}` : hiddenTip,null,seeCost ? `retail: ${formatCurrencyCompact(retailValue)}` : '');
-  if (dp.viewStockAlerts !== false)
-    kpiHtml += kpi('orange','orange','Stock Alerts',lowStockCount+outOfStockCount,`Out of stock: ${outOfStockCount} &middot; Low (≤${state.settings.lowStockThreshold||5}): ${lowStockCount}`,null,`${outOfStockCount} out · ${lowStockCount} low`);
+    kpiHtml += kpi('purple','purple','Inv. Value',money(seeCost, totalInventoryValue),seeCost ? `Stock at average cost: ${fc(totalInventoryValue)} &middot; at sales price: ${fc(retailValue)}` : hiddenTip,null,seeCost ? `retail: ${formatCurrencyCompact(retailValue)}` : '');
   if (dp.viewCustomersKpi !== false && canAccess('customers','view'))
     kpiHtml += kpi('teal','teal','Customers',totalCustomers,`Total customer records`);
   if (dp.viewSuppliersKpi !== false && canAccess('suppliers','view'))
@@ -11783,7 +12077,10 @@ function renderDashboard() {
 let _bulkPrintSelection = new Set(); // persists across product page navigation
 let _chartMonthFilter = []; // empty = all months
 
-function renderMonthlyChart(yearFilter, categoryProductIds) {
+function renderMonthlyChart(yearFilter, categoryProductIds, inclGst) {
+  if (inclGst === undefined) inclGst = _chartInclGst();
+  const gstBox = document.getElementById('chartInclGst');
+  if (gstBox) gstBox.checked = inclGst;
   const allMonths = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const salesByMonth = new Array(12).fill(0);
   const purchasesByMonth = new Array(12).fill(0);
@@ -11803,7 +12100,10 @@ function renderMonthlyChart(yearFilter, categoryProductIds) {
       if (!hasMatch) return;
     }
     const m = d.getMonth();
-    const amt = _orderShare(o, categoryProductIds ? (it => categoryProductIds.has(it.productId)) : null).total;
+    // Goods value, plus GST when ticked. Shipping and packaging are left out
+    // (they have their own cards), so the bars match Gross Sales / Purchases.
+    const sh = _orderShare(o, categoryProductIds ? (it => categoryProductIds.has(it.productId)) : null);
+    const amt = sh.subtotal + (inclGst ? sh.tax : 0);
     if (o.type === 'Sales') salesByMonth[m] += amt;
     else purchasesByMonth[m] += amt;
   });
@@ -11951,8 +12251,11 @@ function renderRecentOrders() {
 }
 
 function renderLowStockAlerts() {
-  const threshold = state.settings.lowStockThreshold || 5;
-  const alerts = state.products.filter(p => p.inStock <= threshold).sort((a, b) => a.inStock - b.inStock).slice(0, 8);
+  const threshold = _lowStockThreshold();
+  // Same products as the Stock Alerts card: the dashboard's category filter applies.
+  const pool = _dashFilterCategories.length > 0
+    ? state.products.filter(p => _dashFilterCategories.includes(p.category)) : state.products;
+  const alerts = pool.filter(p => p.inStock <= threshold).sort((a, b) => a.inStock - b.inStock).slice(0, 8);
 
   if (alerts.length === 0) {
     document.getElementById('lowStockAlerts').innerHTML = '<div class="empty-state" style="padding:16px"><svg style="width:40px;height:40px"><use href="#icon-check"/></svg><h3>All Good!</h3><p>No stock alerts</p></div>';
@@ -12630,7 +12933,8 @@ function renderProfitReport(el) {
   const totalBought = purchases.reduce((s, o) => s + subOf(o), 0);
   const profit = totalRevenue - totalCost;
   const profitPct = totalRevenue > 0 ? ((profit / totalRevenue) * 100).toFixed(1) : 0;
-  const seeAll = _seeSales() && _seePurch();
+  // Profit and cost of goods sold reveal what products cost, so See Prices too.
+  const seeAll = _seeSales() && _seePurch() && _seePrices();
   const $ = v => seeAll ? formatCurrency(v) : _HIDDEN;
 
   // Monthly breakdown across the WHOLE chosen period. It used to be pinned to
@@ -13253,6 +13557,7 @@ function renderDataSettings(el) {
   const dataSizeStr = dataSize > 1024 * 1024 ? (dataSize / 1024 / 1024).toFixed(2) + ' MB' : (dataSize / 1024).toFixed(1) + ' KB';
   const lastBackup = state.settings.autoBackup?.lastBackupTime ? formatDate(state.settings.autoBackup.lastBackupTime) : 'Never';
   const changesSince = state.settings.autoBackup?.changesSinceBackup || 0;
+  const ab = state.settings.autoBackup || {};
 
   const st = syncStatus();
 
@@ -13264,7 +13569,16 @@ function renderDataSettings(el) {
         AES-256-GCM, key derived from your PIN. ${syncOn()
           ? `Sync is on &mdash; <strong>${escapeHtml(st.text)}</strong>.`
           : 'Sync is off, so this device holds the only copy.'}</p>
-      <p style="margin-bottom:12px;color:var(--text-secondary);font-size:13px">Data size: <strong>${dataSizeStr}</strong> | Last export: <strong>${lastBackup}</strong> (${changesSince} changes since)</p>
+      <p style="margin-bottom:8px;color:var(--text-secondary);font-size:13px">Data size: <strong>${dataSizeStr}</strong> | Last backup on this device: <strong>${lastBackup}</strong> (${changesSince} changes since)</p>
+      <div style="margin-bottom:12px;font-size:13px">
+        <label class="form-check"><input type="checkbox" id="abOn" ${ab.enabled !== false ? 'checked' : ''} onchange="_saveBackupReminder()"> Remind me to make a backup on this device</label>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:6px;color:var(--text-secondary)">
+          after <input class="form-control" id="abChanges" type="number" min="0" step="1" inputmode="numeric" style="width:80px;padding:4px 8px" value="${Number(ab.changeThreshold ?? 50)}" onchange="_saveBackupReminder()"> changes
+          or <input class="form-control" id="abDays" type="number" min="0" step="1" inputmode="numeric" style="width:70px;padding:4px 8px" value="${Number(ab.dayThreshold ?? 7)}" onchange="_saveBackupReminder()"> days, whichever comes first (0 = not by that)
+        </div>
+        <span class="form-hint">A browser cannot save a file by itself, so this shows a reminder on the dashboard with a <em>Back up now</em> button, to people allowed to make backups.
+          The Full Backup and Export All Separately both count.</span>
+      </div>
       ${_syncSizeReportHTML()}
       ${collectionHealthHTML()}
       <div class="warn" style="margin:12px 0;font-size:13px">
@@ -13300,7 +13614,8 @@ function renderDataSettings(el) {
     </div></div>
 
     <div class="card mt-lg"><div class="card-header"><span class="card-title">Import Individual Collections</span></div><div class="card-body">
-      <p style="margin-bottom:12px;color:var(--text-secondary)">Import a specific collection from a previously exported JSON file.</p>
+      <p style="margin-bottom:12px;color:var(--text-secondary)">Add the records from a file exported above. Nothing here is deleted:
+        new records are added, and a record that is already here keeps whichever copy is newer. You see what will happen before anything changes.</p>
       <div class="btn-group">
         <button class="btn btn-sm btn-secondary" onclick="importCollectionJSONTrigger('products')">Import Products</button>
         <button class="btn btn-sm btn-secondary" onclick="importCollectionJSONTrigger('customers')">Import Customers</button>
@@ -13874,12 +14189,77 @@ function _canExportAll() {
     && Object.entries(EXPORT_MASKED_COLUMNS).every(([t, r]) => canAccess(t, r.perm));
 }
 
+/* ---- backup reminder (26 Sep review, row 5) ----
+   "Last export" only moved for Export All Separately, so it said "Never" right
+   after a Full Backup, and the stored "auto backup every 50 changes" was read by
+   nothing. A browser cannot save a file on its own, so the automatic part is a
+   reminder on the dashboard with a one-tap Back up now, for people allowed to
+   make backups. It is this device's own: settings.autoBackup never syncs. */
+
+/** A full copy of the data just left the app: restart the count. */
+function _noteBackupMade() {
+  const ab = state.settings.autoBackup || (state.settings.autoBackup = {});
+  ab.changesSinceBackup = 0;
+  ab.lastBackupTime = new Date().toISOString();
+  delete ab.snoozeUntil;
+  saveData('settings');
+  const r = document.getElementById('backupReminder');
+  if (r) r.innerHTML = '';
+}
+
+/** Is a reminder due? null, or { changes, last } for the banner. */
+function _backupDue() {
+  const ab = state.settings.autoBackup || {};
+  if (ab.enabled === false || !_canExportAll()) return null;
+  if (ab.snoozeUntil && Date.now() < Date.parse(ab.snoozeUntil)) return null;
+  const changes = Number(ab.changesSinceBackup) || 0;
+  if (!changes) return null;                               // nothing new to lose
+  const maxChanges = Number(ab.changeThreshold ?? 50) || 0;
+  const maxDays = Number(ab.dayThreshold ?? 7) || 0;
+  const last = ab.lastBackupTime ? Date.parse(ab.lastBackupTime) : 0;
+  const days = last ? (Date.now() - last) / 86400000 : Infinity;
+  const due = (maxChanges > 0 && changes >= maxChanges) || (maxDays > 0 && days >= maxDays);
+  return due ? { changes, last } : null;
+}
+
+function renderBackupReminder() {
+  const el = document.getElementById('backupReminder');
+  if (!el) return;
+  const due = _backupDue();
+  if (!due) { el.innerHTML = ''; return; }
+  const since = due.last ? 'since your last backup on ' + formatDate(new Date(due.last).toISOString()) : 'and no backup has been made on this device yet';
+  el.innerHTML = `<div style="background:var(--color-warning-bg);border-radius:10px;padding:12px 14px;margin-bottom:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:13px">
+    <span style="flex:1;min-width:220px;line-height:1.5"><strong>Time for a backup.</strong> ${due.changes.toLocaleString('en-IN')} change${due.changes === 1 ? '' : 's'} ${since}.</span>
+    <button class="btn btn-sm btn-primary" onclick="exportAllData()">Back up now</button>
+    <button class="btn btn-sm btn-secondary" onclick="_snoozeBackupReminder()">Remind me tomorrow</button>
+  </div>`;
+}
+
+function _snoozeBackupReminder() {
+  const ab = state.settings.autoBackup || (state.settings.autoBackup = {});
+  ab.snoozeUntil = new Date(Date.now() + 86400000).toISOString();
+  saveData('settings');
+  renderBackupReminder();
+}
+
+function _saveBackupReminder() {
+  const ab = state.settings.autoBackup || (state.settings.autoBackup = {});
+  const whole = id => Math.max(0, Math.floor(Number(document.getElementById(id)?.value) || 0));
+  ab.enabled = !!document.getElementById('abOn')?.checked;
+  ab.changeThreshold = whole('abChanges');
+  ab.dayThreshold = whole('abDays');
+  delete ab.snoozeUntil;
+  saveData('settings');
+  showToast(ab.enabled ? 'Backup reminder saved' : 'Backup reminder switched off on this device', 'success');
+}
+
 async function exportAllData() {
   if (!_canExportAll()) { showToast('Backups need Data Mgmt plus every Export and "See" permission', 'error'); return; }
   const data = JSON.stringify(state, null, 2);
   const blob = new Blob([data], { type: 'application/json' });
   const saved = await saveFileWithPicker(blob, `${state.settings.branding.companyName}_backup_${_localDateStr()}.json`);
   if (saved === false) return; // user cancelled the save dialog
+  _noteBackupMade();
   logActivity('Full data backup exported', 'blue', { actionType:'create', entityType:'export', entityName:'Full Backup' });
   showToast('Data exported successfully', 'success');
 }
@@ -14341,8 +14721,8 @@ function globalSearch(query) {
   // Map page names to their search input IDs and data
   const searchTargets = [
     { page: 'products', inputId: 'productSearchInput', count: state.products.filter(p => hit([p.name, p.brand, p.model, p.color, p.category, p.sku, p.description])).length },
-    { page: 'customers', inputId: 'customerSearchInput', count: state.customers.filter(c => hit([c.name, c.email, c.phone, c.city, c.address])).length },
-    { page: 'suppliers', inputId: 'supplierSearchInput', count: state.suppliers.filter(s => hit([s.name, s.email, s.phone, s.contactPerson, s.city])).length },
+    { page: 'customers', inputId: 'customerSearchInput', count: state.customers.filter(c => { const see = !_fieldMasked('customers', 'phone'); return hit([c.name, see && c.email, see && c.phone, c.city, c.address]); }).length },
+    { page: 'suppliers', inputId: 'supplierSearchInput', count: state.suppliers.filter(s => { const see = !_fieldMasked('suppliers', 'phone'); return hit([s.name, see && s.email, see && s.phone, s.contactPerson, s.city]); }).length },
     { page: 'sales', inputId: 'salesSearchInput', count: state.orders.filter(o => o.type === 'Sales' && hit([o.orderNumber, o.status, o.paymentStatus, (state.customers.find(c=>c.id===o.partyId)?.name||'')])).length },
     { page: 'purchases', inputId: 'purchasesSearchInput', count: state.orders.filter(o => o.type === 'Purchase' && hit([o.orderNumber, o.status, o.paymentStatus, (state.suppliers.find(s=>s.id===o.partyId)?.name||'')])).length },
   ];
@@ -14648,25 +15028,150 @@ function importCollectionJSONTrigger(name) {
   input.click();
 }
 
+/**
+ * Import one list (products / customers / suppliers / orders) from a JSON file
+ * exported above.
+ *
+ * It used to REPLACE the list: every record not in the file was deleted, and
+ * deletions sync, so on every device - behind a prompt that only said "Replace
+ * current products?". Its counter maths could also push this device's new ids
+ * into another device's number range (26 Sep review, row 4).
+ *
+ * Now it adds and updates, and never deletes anything:
+ *  - a record that is not here is added;
+ *  - a record that is here (same id) keeps the newer copy, merged exactly as a
+ *    sync merges (_mergeRecord), so an old file cannot undo a later edit;
+ *  - a record deleted here since the file was made stays deleted unless the
+ *    person ticks "bring them back" - then it returns on every device.
+ * Importing orders does not move stock: products keep the stock they have.
+ */
+const IMPORT_COUNTER = { products: 'product', customers: 'customer', suppliers: 'supplier', orders: 'orderRec' };
+
 function importCollectionJSON(event, name) {
   const file = event.target.files[0]; if (!file) return;
   const reader = new FileReader();
   reader.onload = (e) => {
-    try {
-      const data = JSON.parse(e.target.result);
-      if (!Array.isArray(data)) { showToast('File must contain an array', 'error'); return; }
-      showConfirm(`Import ${name}`, `Replace current ${name} with ${data.length} imported records?`, () => {
-        state[name] = data;
-        // Update nextId
-        const maxId = data.reduce((m, d) => Math.max(m, d.id || 0), 0);
-        const idKey = name === 'activityLog' ? null : name.slice(0, -1);
-        if (idKey && state.nextIds[idKey] !== undefined) state.nextIds[idKey] = Math.max(state.nextIds[idKey], maxId + 1);
-        saveData(); navigateTo('dashboard');
-        showToast(`Imported ${data.length} ${name}`, 'success');
-      }, 'Import');
-    } catch(e) { showToast('Invalid JSON: ' + e.message, 'error'); }
+    let data;
+    try { data = JSON.parse(e.target.result); }
+    catch (err) { showToast('Invalid JSON: ' + err.message, 'error'); return; }
+    // The desktop app's file server wrapped lists as { data: [...] }.
+    if (data && !Array.isArray(data) && Array.isArray(data.data)) data = data.data;
+    if (!Array.isArray(data)) { showToast('That file does not hold a list of records', 'error'); return; }
+    const kind = _detectCollection(file.name, data);
+    if (kind && kind !== name) { showToast(`That file holds ${kind}, not ${name}. Nothing was imported.`, 'error'); return; }
+    _openCollectionImport(name, file.name, data);
   };
   reader.readAsText(file);
+}
+
+/** What importing `rows` into `name` would do. Pure: changes nothing. */
+function _planCollectionImport(name, rows) {
+  const have = new Map((state[name] || []).map(r => [String(r.id), r]));
+  const tomb = _tombstones[name] || {};
+  const plan = { add: [], update: [], same: 0, deleted: [] };
+  // One entry per id; a file listing an id twice keeps its newer copy.
+  const byId = new Map(), noId = [];
+  for (const raw of rows) {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) continue;
+    const r = JSON.parse(JSON.stringify(raw));
+    _normalizeIds([r]);
+    if (r.id == null || r.id === '') { noId.push(r); continue; }
+    const prev = byId.get(String(r.id));
+    if (!prev || String(r.updatedAt || '') >= String(prev.updatedAt || '')) byId.set(String(r.id), r);
+  }
+  for (const [key, r] of byId) {
+    const cur = have.get(key);
+    if (cur) {
+      const merged = _mergeRecord(name, cur, r);
+      if (JSON.stringify(merged) === JSON.stringify(cur)) plan.same++;
+      else plan.update.push(merged);
+    } else if (tomb[key]) plan.deleted.push(r);
+    else plan.add.push(r);
+  }
+  plan.add.push(...noId);                     // given fresh ids when applied
+  return plan;
+}
+
+function _openCollectionImport(name, fileName, rows) {
+  const plan = _planCollectionImport(name, rows);
+  const n = x => Number(x).toLocaleString('en-IN');
+  if (!plan.add.length && !plan.update.length && !plan.deleted.length) {
+    showToast(`Nothing to import: all ${n(plan.same)} ${name} in that file are already here`, 'info');
+    return;
+  }
+  window.__colImport = { name, fileName, rows };
+  const line = (count, text) => count ? `<li style="margin-bottom:4px"><strong>${n(count)}</strong> ${text}</li>` : '';
+  openModal(`Import ${name}`, `
+    <p style="font-size:13px;margin-bottom:8px">From <strong>${escapeHtml(fileName)}</strong>:</p>
+    <ul style="font-size:13px;line-height:1.5;padding-left:18px;margin-bottom:12px">
+      ${line(plan.add.length, 'new - will be added')}
+      ${line(plan.update.length, 'already here, and the file has a newer copy - will be updated')}
+      ${line(plan.same, 'already here and up to date - left as they are')}
+      ${plan.deleted.length ? `<li style="margin-bottom:4px"><strong>${n(plan.deleted.length)}</strong> ${plan.deleted.length === 1 ? 'was deleted here after this file was made - it stays' : 'were deleted here after this file was made - they stay'} deleted unless you tick:
+        <label class="form-check" style="margin-top:6px"><input type="checkbox" id="impRestoreDeleted"> ${plan.deleted.length === 1 ? 'Bring it back' : `Bring these ${n(plan.deleted.length)} back`}${syncOn() ? ' (on every device)' : ''}</label></li>` : ''}
+    </ul>
+    <div style="background:var(--color-warning-bg);padding:10px 12px;border-radius:8px;font-size:13px;line-height:1.5">
+      <strong>Nothing here is deleted.</strong> Records that are not in the file stay as they are.
+      ${syncOn() ? 'What is added or updated reaches every synced device.' : ''}
+      ${name === 'orders' ? '<br>Importing orders does <strong>not</strong> change stock: every product keeps the stock it has now.' : ''}
+    </div>`,
+    `<button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+     <button class="btn btn-primary" onclick="_confirmCollectionImport()">Import</button>`, 'sm');
+}
+
+async function _confirmCollectionImport() {
+  const job = window.__colImport;
+  if (!job) return;
+  const restore = !!document.getElementById('impRestoreDeleted')?.checked;
+  window.__colImport = null;
+  closeModal();
+  const { name } = job;
+  // Worked out again now: a sync may have changed the list while the dialog was open.
+  const plan = _planCollectionImport(name, job.rows);
+  if (!plan.add.length && !plan.update.length && !(restore && plan.deleted.length)) {
+    showToast(`Nothing imported: no ${name} were added or changed`, 'info');
+    return;
+  }
+  const byId = new Map((state[name] || []).map(r => [String(r.id), r]));
+  for (const r of plan.update) byId.set(String(r.id), r);
+  for (const r of plan.add) {
+    if (r.id == null || r.id === '') r.id = getNextId(IMPORT_COUNTER[name]);
+    byId.set(String(r.id), r);
+  }
+  if (restore && plan.deleted.length) {
+    // Stamped now, so it is newer than the deletion marker every device holds
+    // and comes back everywhere; this device forgets its own marker.
+    const stamp = nowISO();
+    for (const r of plan.deleted) {
+      r.updatedAt = stamp;
+      if (_tombstones[name]) delete _tombstones[name][String(r.id)];
+      byId.set(String(r.id), r);
+    }
+  }
+  state[name] = [...byId.values()];
+  _keepCountersAhead(IMPORT_COUNTER[name], state[name]);
+  invalidateSearchIndex(name);
+  await saveData(name);
+  const restored = restore ? plan.deleted.length : 0;
+  const summary = `${plan.add.length} added, ${plan.update.length} updated` + (restored ? `, ${restored} brought back` : '');
+  logActivity(`Imported ${name} from ${job.fileName}: ${summary}`, 'blue', { actionType:'create', entityType:'data', entityName:`${name} JSON Import` });
+  showToast(`Imported ${name}: ${summary}. Nothing was deleted.`, 'success');
+  if (typeof switchSettingsTab === 'function' && document.getElementById('page-settings')?.classList.contains('active')) switchSettingsTab('data');
+}
+
+/**
+ * Keep this device's id counter past every id it issued that is in the data -
+ * e.g. records made here before a reset, coming back from a file. Ids from
+ * other devices sit in their own number range and never move it.
+ */
+function _keepCountersAhead(counter, records) {
+  const dev = Number(deviceId());
+  let top = 0;
+  for (const r of records || []) {
+    const id = Number(r && r.id);
+    if (isFinite(id) && id >= 1e9 && Math.floor(id / 1e9) === dev) top = Math.max(top, id % 1e9);
+  }
+  if (top) state.nextIds[counter] = Math.max(Number(state.nextIds[counter]) || 1, top + 1);
 }
 
 function exportOrganizedBackup() {
@@ -14683,9 +15188,7 @@ function exportOrganizedBackup() {
     const blob = new Blob([JSON.stringify(state.settings, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url; a.download = `settings_${_localDateStr()}.json`; a.click(); URL.revokeObjectURL(url);
-    state.settings.autoBackup.changesSinceBackup = 0;
-    state.settings.autoBackup.lastBackupTime = new Date().toISOString();
-    saveData('settings');
+    _noteBackupMade();
     logActivity('Organized backup exported (all collections)', 'blue', { actionType:'create', entityType:'export', entityName:'Organized Backup' });
     showToast('All collections exported!', 'success');
   }, delay);
@@ -14787,11 +15290,12 @@ function viewCustomerOrders(customerId) {
   const c = state.customers.find(x => x.id === customerId);
   const orders = state.orders.filter(o => o.type === 'Sales' && o.partyId === customerId);
   const totalSpent = orders.filter(o => o.status === 'Completed').reduce((s,o) => s + o.total, 0);
+  const $ = v => _seeSales() ? formatCurrency(v) : _HIDDEN;
   let rows = orders.map(o => {
     const sc = o.status === 'Completed' ? 'badge-success' : o.status === 'Cancelled' ? 'badge-danger' : 'badge-warning';
-    return `<tr><td>${escapeHtml(o.orderNumber)}</td><td>${formatDate(o.date)}</td><td>${o.items?.length||0}</td><td>${formatCurrency(o.total)}</td><td><span class="badge ${sc}">${o.status}</span></td></tr>`;
+    return `<tr><td>${escapeHtml(o.orderNumber)}</td><td>${formatDate(o.date)}</td><td>${o.items?.length||0}</td><td>${$(o.total)}</td><td><span class="badge ${sc}">${o.status}</span></td></tr>`;
   }).join('');
-  const body = `<div class="order-summary" style="margin-bottom:16px"><div class="order-summary-item"><label>Total Orders</label><span>${orders.length}</span></div><div class="order-summary-item"><label>Total Spent</label><span>${formatCurrency(totalSpent)}</span></div></div>
+  const body = `<div class="order-summary" style="margin-bottom:16px"><div class="order-summary-item"><label>Total Orders</label><span>${orders.length}</span></div><div class="order-summary-item"><label>Total Spent</label><span>${$(totalSpent)}</span></div></div>
     <table class="data-table"><thead><tr><th>Order #</th><th>Date</th><th>Items</th><th>Total</th><th>Status</th></tr></thead>
     <tbody>${rows || '<tr><td colspan="5"><div class="empty-state"><p>No orders found</p></div></td></tr>'}</tbody></table>`;
   openModal(`Order History: ${c?.name || 'Customer'}`, body, '<button class="btn btn-secondary" onclick="closeModal()">Close</button>');
@@ -14801,11 +15305,12 @@ function viewSupplierOrders(supplierId) {
   const s = state.suppliers.find(x => x.id === supplierId);
   const orders = state.orders.filter(o => o.type === 'Purchase' && o.partyId === supplierId);
   const totalSpent = orders.filter(o => o.status === 'Completed').reduce((s,o) => s + o.total, 0);
+  const $ = v => _seePurch() ? formatCurrency(v) : _HIDDEN;
   let rows = orders.map(o => {
     const sc = o.status === 'Completed' ? 'badge-success' : o.status === 'Cancelled' ? 'badge-danger' : 'badge-warning';
-    return `<tr><td>${escapeHtml(o.orderNumber)}</td><td>${formatDate(o.date)}</td><td>${o.items?.length||0}</td><td>${formatCurrency(o.total)}</td><td><span class="badge ${sc}">${o.status}</span></td></tr>`;
+    return `<tr><td>${escapeHtml(o.orderNumber)}</td><td>${formatDate(o.date)}</td><td>${o.items?.length||0}</td><td>${$(o.total)}</td><td><span class="badge ${sc}">${o.status}</span></td></tr>`;
   }).join('');
-  const body = `<div class="order-summary" style="margin-bottom:16px"><div class="order-summary-item"><label>Total Orders</label><span>${orders.length}</span></div><div class="order-summary-item"><label>Total Purchased</label><span>${formatCurrency(totalSpent)}</span></div></div>
+  const body = `<div class="order-summary" style="margin-bottom:16px"><div class="order-summary-item"><label>Total Orders</label><span>${orders.length}</span></div><div class="order-summary-item"><label>Total Purchased</label><span>${$(totalSpent)}</span></div></div>
     <table class="data-table"><thead><tr><th>Order #</th><th>Date</th><th>Items</th><th>Total</th><th>Status</th></tr></thead>
     <tbody>${rows || '<tr><td colspan="5"><div class="empty-state"><p>No orders found</p></div></td></tr>'}</tbody></table>`;
   openModal(`Order History: ${s?.name || 'Supplier'}`, body, '<button class="btn btn-secondary" onclick="closeModal()">Close</button>');
@@ -15816,22 +16321,112 @@ const PERMS_ALLOWED_IF_MISSING = {
 // ...and a module with no entry at all (the role predates it): only these.
 const MODULE_ALLOWED_IF_ABSENT = { whatsapp: ['view', 'edit'] };
 
-function canAccess(module, action) {
-  if (!currentUser || currentUser.role === 'admin') return true;
+/** Is this right ticked for the signed-in person (before the rules below)? */
+function _permGranted(module, act) {
   const perms = currentUser.permissions || {};
   const mod = perms[module];
-  const act = action || 'view';
   if (!mod) return (MODULE_ALLOWED_IF_ABSENT[module] || []).includes(act);
   if (mod[act] === undefined && (PERMS_ALLOWED_IF_MISSING[module] || []).includes(act)) return true;
   return !!mod[act];
 }
 
-function maskValue(value, module, field) {
-  if (!currentUser || currentUser.role === 'admin') return value;
-  const perms = currentUser.permissions || {};
-  if ((field === 'purchasePrice' || field === 'salesPrice' || field === 'total' || field === 'subtotal') && !perms[module]?.viewPrices && !perms[module]?.viewValues) return '***';
-  if ((field === 'phone' || field === 'email') && !perms[module]?.viewContact) return '***';
-  return value;
+/**
+ * Entering or editing an order shows - and fills in - product prices and the
+ * order's money. Someone who may not see those cannot do it without seeing
+ * them, so Add / Edit on Sales and Purchases also need "See Prices" (Products)
+ * and that order type's "See Values" (owner's rule, 3.18). Enforced here, so a
+ * role saved before the rule is right at once; the permission screens grey the
+ * boxes out, and _upgradeOrderEntryRights stores them switched off.
+ */
+const ORDER_ENTRY_ACTS = ['add', 'edit'];
+
+function canAccess(module, action) {
+  if (!currentUser || currentUser.role === 'admin') return true;
+  const act = action || 'view';
+  if (!_permGranted(module, act)) return false;
+  if ((module === 'sales' || module === 'purchases') && ORDER_ENTRY_ACTS.includes(act)) {
+    return _permGranted('products', 'viewPrices') && _permGranted(module, 'viewValues');
+  }
+  return true;
+}
+
+/** Why an order cannot be entered, in words. */
+function _orderEntryDenied(type, act) {
+  const what = type === 'sales' ? 'sales orders' : 'purchase orders';
+  if (currentUser && currentUser.role !== 'admin' && _permGranted(type, act)
+      && !(_permGranted('products', 'viewPrices') && _permGranted(type, 'viewValues'))) {
+    return `Entering ${what} needs "See Prices" and "See Values" - ask an administrator`;
+  }
+  return `You do not have permission to ${act === 'add' ? 'add' : 'edit'} ${what}`;
+}
+
+/** A stored permission set: Add / Edit on orders off wherever the rule above refuses them. Returns true if it changed. */
+function _normalizeOrderEntry(perms) {
+  if (!perms || typeof perms !== 'object') return false;
+  let changed = false;
+  for (const t of ['sales', 'purchases']) {
+    const m = perms[t];
+    if (!m || (perms.products && perms.products.viewPrices && m.viewValues)) continue;
+    for (const a of ORDER_ENTRY_ACTS) if (m[a]) { m[a] = false; changed = true; }
+  }
+  return changed;
+}
+
+/**
+ * Roles and accounts saved before 3.18 can hold Add / Edit on orders without
+ * the rights to see prices. canAccess() already refuses them; this stores them
+ * switched off so every permission screen says what is true. Runs where the
+ * credential upgrade runs (settings known to be the Sheet's latest) and only
+ * for an administrator, so it is one device's edit rather than every device's.
+ */
+function _upgradeOrderEntryRights() {
+  if (!VAULT_KEY || !state.settings || !currentUser || currentUser.role !== 'admin') return 0;
+  let n = 0;
+  for (const r of state.settings.roles || []) if (_normalizeOrderEntry(r.permissions)) n++;
+  for (const u of state.settings.users || []) if (u && u.role !== 'admin' && _normalizeOrderEntry(u.permissions)) n++;
+  if (n) saveData('settings');
+  return n;
+}
+
+/**
+ * Permission screens: grey out Add / Edit on Sales and Purchases while See
+ * Prices or that type's See Values is off, untick them, and say why.
+ */
+function _wireOrderEntryDeps(root) {
+  if (!root) return;
+  const box = (m, a) => root.querySelector(`input[data-mod="${m}"][data-act="${a}"]`);
+  root.querySelectorAll('input[data-mod="sales"], input[data-mod="purchases"]').forEach(cb => {
+    if (cb.dataset.preDisabled === undefined) cb.dataset.preDisabled = cb.disabled ? '1' : '';
+  });
+  const sync = () => {
+    for (const t of ['sales', 'purchases']) {
+      const ok = !!(box('products', 'viewPrices')?.checked && box(t, 'viewValues')?.checked);
+      let group = null;
+      for (const a of ORDER_ENTRY_ACTS) {
+        const cb = box(t, a);
+        if (!cb) continue;
+        if (!ok) cb.checked = false;
+        cb.disabled = cb.dataset.preDisabled === '1' || !ok;
+        const label = cb.closest('label');
+        if (label) { label.style.opacity = ok ? '' : '0.45'; label.title = ok ? '' : 'Needs See Prices (Products) and See Values'; }
+        group = group || (label && label.parentElement && label.parentElement.parentElement);
+      }
+      if (group) {
+        let note = group.querySelector('.perm-dep-note');
+        if (!note) {
+          note = document.createElement('div');
+          note.className = 'perm-dep-note';
+          note.style.cssText = 'font-size:11px;color:var(--text-secondary);margin-top:6px';
+          group.appendChild(note);
+        }
+        note.textContent = ok ? '' : 'Add and Edit need See Prices (under Products) and See Values here - entering an order shows prices.';
+        note.style.display = ok ? 'none' : '';
+      }
+    }
+  };
+  root._orderDeps = sync;
+  root.addEventListener('change', sync);
+  sync();
 }
 
 /**
@@ -16163,7 +16758,7 @@ async function finishBootAfterUnlock() {
   // Pre-3.16 hashes -> verifiers, in the background. With sync on this waits
   // for a sync (see doSync): converting a copy of the settings that is behind
   // the Sheet would count as a fresh edit and overwrite newer settings.
-  if (!syncOn()) _upgradeCredentials().catch(() => {});
+  if (!syncOn()) { _upgradeCredentials().catch(() => {}); _upgradeOrderEntryRights(); }
 }
 
 /** Ask the browser not to evict the vault under disk pressure. */
@@ -16436,6 +17031,13 @@ function applyUserPermissions() {
   });
   const exportAll = document.getElementById('exportAllBtn');
   if (exportAll) exportAll.style.display = _canExportAll() ? '' : 'none';
+  // Add / New buttons follow the Add right (for orders: also See Prices and See Values).
+  const addButtons = { products: ['wbAddProduct', 'productsAddGroup'], customers: ['wbAddCustomer', 'customersAddBtn'],
+    suppliers: ['wbAddSupplier', 'suppliersAddBtn'], sales: ['wbNewSale', 'salesAddBtn'], purchases: ['wbNewPurchase', 'purchasesAddBtn'] };
+  for (const [mod, ids] of Object.entries(addButtons)) {
+    const ok = canAccess(mod, 'view') && canAccess(mod, 'add');
+    ids.forEach(id => { const b = document.getElementById(id); if (b) b.style.display = ok ? '' : 'none'; });
+  }
   const logoutBtn = document.getElementById('logoutBtn');
   if (logoutBtn) logoutBtn.style.display = (state.settings.users||[]).length > 0 ? '' : 'none';
 }
@@ -16627,6 +17229,7 @@ function onUserRoleChange() {
       });
     }
   }
+  permDiv?._orderDeps?.();
 }
 
 function openUserModal(editId) {
@@ -16646,7 +17249,7 @@ function openUserModal(editId) {
   const roleDropdownDisabled = isSelf || (targetIsAdmin && !canGrantAdmin);
   // Updated 24-05-2026 - End
   const modules = [
-    {key:'dashboard',label:'Dashboard',actions:['view','viewWelcomeBanner','viewDashFilters','viewGrossSalesKpi','viewNetSalesKpi','viewSalesKpi','viewPurchaseKpi','viewGrossProfitKpi','viewInventoryValueKpi','viewTotalOrdersKpi','viewPendingKpi','viewUnpaidKpi','viewCancelledKpi','viewProductsKpi','viewCustomersKpi','viewSuppliersKpi','viewStockAlerts','viewRecentOrders','viewMonthlyChart','viewTopProducts','viewCategoryChart','viewRevenueByCategoryChart','viewLowStockAlertsCard']},
+    {key:'dashboard',label:'Dashboard',actions:['view','viewWelcomeBanner','viewDashFilters','viewGrossSalesKpi','viewNetSalesKpi','viewSalesKpi','viewPurchaseKpi','viewGrossProfitKpi','viewTaxKpi','viewShippingKpi','viewPackagingKpi','viewInventoryValueKpi','viewTotalOrdersKpi','viewPendingKpi','viewUnpaidKpi','viewCancelledKpi','viewProductsKpi','viewCustomersKpi','viewSuppliersKpi','viewStockAlerts','viewRecentOrders','viewMonthlyChart','viewTopProducts','viewCategoryChart','viewRevenueByCategoryChart','viewLowStockAlertsCard']},
     {key:'products',label:'Products',actions:['view','add','edit','delete','viewPrices','export']},
     {key:'customers',label:'Customers',actions:['view','add','edit','delete','viewContact','export']},
     {key:'suppliers',label:'Suppliers',actions:['view','add','edit','delete','viewContact','export']},
@@ -16682,7 +17285,7 @@ function openUserModal(editId) {
     <h4 style="margin:16px 0 8px">Permissions${isSelf?' <span style="font-size:11px;font-weight:normal;color:var(--text-secondary)">(locked &mdash; self-edit)</span>':''}</h4>
     ${modules.map(m => {
       // Updated 24-05-2026 & Updated 26-05-2026: Added new permissions to actionLabels and ensured they are displayed properly in the permissions matrix.
-      const actionLabels = {view:'View',add:'Add',edit:'Edit',delete:'Delete',viewPrices:'See Prices',export:'Export',viewValues:'See Values',viewContact:'See Contact',viewWelcomeBanner:'Welcome Banner',viewDashFilters:'Dashboard Filters',viewGrossSalesKpi:'Gross Sales KPI',viewNetSalesKpi:'Net Sales KPI',viewSalesKpi:'Sales KPI',viewPurchaseKpi:'Purchase KPI',viewStockAlerts:'Stock Alerts KPI',viewRecentOrders:'Recent Orders',viewMonthlyChart:'Monthly Chart',viewTopProducts:'Top Products',viewCategoryChart:'Inventory by Category',viewRevenueByCategoryChart:'Revenue by Category',viewLowStockAlertsCard:'Low Stock Alerts Card',viewGrossProfitKpi:'Gross Profit KPI',viewInventoryValueKpi:'Inventory Value KPI',viewTotalOrdersKpi:'Total Orders KPI',viewPendingKpi:'Pending KPI',viewUnpaidKpi:'Unpaid KPI',viewCancelledKpi:'Cancelled KPI',viewProductsKpi:'Products KPI',viewCustomersKpi:'Customers KPI',viewSuppliersKpi:'Suppliers KPI',branding:'Branding',tax:'Tax & Currency',data:'Data Mgmt',users:'Users',usersCreateAdmin:'Create Admin Users',roles:'Roles',columns:'Columns',security:'Security',activityLogs:'View Activity Logs',activityLogsConfig:'Edit Tracking Config',dropdowns:'Dropdowns',invoiceTemplate:'Invoice Template',reportConfig:'Report Config',prodConfig:'Prod Config',spoConfig:'SPO Config'};
+      const actionLabels = {view:'View',add:'Add',edit:'Edit',delete:'Delete',viewPrices:'See Prices',export:'Export',viewValues:'See Values',viewContact:'See Contact',viewWelcomeBanner:'Welcome Banner',viewDashFilters:'Dashboard Filters',viewGrossSalesKpi:'Gross Sales KPI',viewNetSalesKpi:'Total Billed KPI',viewTaxKpi:'Tax KPI',viewShippingKpi:'Shipping KPI',viewPackagingKpi:'Packaging KPI',viewSalesKpi:'Sales KPI',viewPurchaseKpi:'Purchase KPI',viewStockAlerts:'Stock Alerts KPI',viewRecentOrders:'Recent Orders',viewMonthlyChart:'Monthly Chart',viewTopProducts:'Top Products',viewCategoryChart:'Inventory by Category',viewRevenueByCategoryChart:'Revenue by Category',viewLowStockAlertsCard:'Low Stock Alerts Card',viewGrossProfitKpi:'Gross Profit KPI',viewInventoryValueKpi:'Inventory Value KPI',viewTotalOrdersKpi:'Total Orders KPI',viewPendingKpi:'Pending KPI',viewUnpaidKpi:'Unpaid KPI',viewCancelledKpi:'Cancelled KPI',viewProductsKpi:'Products KPI',viewCustomersKpi:'Customers KPI',viewSuppliersKpi:'Suppliers KPI',branding:'Branding',tax:'Tax & Currency',data:'Data Mgmt',users:'Users',usersCreateAdmin:'Create Admin Users',roles:'Roles',columns:'Columns',security:'Security',activityLogs:'View Activity Logs',activityLogsConfig:'Edit Tracking Config',dropdowns:'Dropdowns',invoiceTemplate:'Invoice Template',reportConfig:'Report Config',prodConfig:'Prod Config',spoConfig:'SPO Config'};
       const allChecked = m.actions.every(a => perms[m.key]?.[a] !== false);
       return `<div style="margin-bottom:12px;padding:10px;background:var(--bg-input);border-radius:8px${isSelf?';opacity:0.6':''}">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
@@ -16722,6 +17325,7 @@ function openUserModal(editId) {
   const footer = `<button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
     <button class="btn btn-primary" onclick="saveUser(${editId !== undefined && editId !== null ? JSON.stringify(editId) : 'null'})">${u?'Update':'Create'} User</button>`;
   openModal(title, body, footer, 'lg');
+  _wireOrderEntryDeps(document.getElementById('permMatrix'));
 }
 
 async function saveUser(editId) {
@@ -16781,6 +17385,7 @@ async function saveUser(editId) {
         if (!perms.settings) perms.settings = {};
         ADMIN_GRADE_SETTINGS_PERMS.forEach(k => { perms.settings[k] = false; });
     }
+    _normalizeOrderEntry(perms);
   }
 
   // Build security questions for this user
@@ -17037,7 +17642,7 @@ function openRoleModal(editId) {
   const canGrantAdmin = !currentUser || currentUser.role === 'admin' || currentUser?.permissions?.settings?.usersCreateAdmin === true;
 
   const modules = [
-    {key:'dashboard',label:'Dashboard',actions:['view','viewWelcomeBanner','viewDashFilters','viewGrossSalesKpi','viewNetSalesKpi','viewSalesKpi','viewPurchaseKpi','viewGrossProfitKpi','viewInventoryValueKpi','viewTotalOrdersKpi','viewPendingKpi','viewUnpaidKpi','viewCancelledKpi','viewProductsKpi','viewCustomersKpi','viewSuppliersKpi','viewStockAlerts','viewRecentOrders','viewMonthlyChart','viewTopProducts','viewCategoryChart','viewRevenueByCategoryChart','viewLowStockAlertsCard']},
+    {key:'dashboard',label:'Dashboard',actions:['view','viewWelcomeBanner','viewDashFilters','viewGrossSalesKpi','viewNetSalesKpi','viewSalesKpi','viewPurchaseKpi','viewGrossProfitKpi','viewTaxKpi','viewShippingKpi','viewPackagingKpi','viewInventoryValueKpi','viewTotalOrdersKpi','viewPendingKpi','viewUnpaidKpi','viewCancelledKpi','viewProductsKpi','viewCustomersKpi','viewSuppliersKpi','viewStockAlerts','viewRecentOrders','viewMonthlyChart','viewTopProducts','viewCategoryChart','viewRevenueByCategoryChart','viewLowStockAlertsCard']},
     {key:'products',label:'Products',actions:['view','add','edit','delete','viewPrices','export']},
     {key:'customers',label:'Customers',actions:['view','add','edit','delete','viewContact','export']},
     {key:'suppliers',label:'Suppliers',actions:['view','add','edit','delete','viewContact','export']},
@@ -17052,7 +17657,7 @@ function openRoleModal(editId) {
     {key:'settings',label:'Settings',actions:['view','branding','tax','data','users','usersCreateAdmin','roles','columns','security','activityLogs','activityLogsConfig','dropdowns','invoiceTemplate','reportConfig','prodConfig','spoConfig']},
   ];
   // Updated 24-05-2026: Added invoiceTemplate and usersCreateAdmin & Added privilege escalation gate labels for the settings permissions that can grant admin-level access when editing roles, similar to the logic in openUserModal.
-  const actionLabels = {view:'View',add:'Add',edit:'Edit',delete:'Delete',viewPrices:'See Prices',export:'Export',viewValues:'See Values',viewContact:'See Contact',viewWelcomeBanner:'Welcome Banner',viewDashFilters:'Dashboard Filters',viewSalesKpi:'Sales KPI',viewPurchaseKpi:'Purchase KPI',viewStockAlerts:'Stock Alerts KPI',viewRecentOrders:'Recent Orders',viewMonthlyChart:'Monthly Chart',viewTopProducts:'Top Products',viewCategoryChart:'Inventory by Category',viewRevenueByCategoryChart:'Revenue by Category',viewLowStockAlertsCard:'Low Stock Alerts Card',viewGrossProfitKpi:'Gross Profit KPI',viewInventoryValueKpi:'Inventory Value KPI',viewTotalOrdersKpi:'Total Orders KPI',viewPendingKpi:'Pending KPI',viewUnpaidKpi:'Unpaid KPI',viewCancelledKpi:'Cancelled KPI',viewGrossSalesKpi:'Gross Sales KPI',viewNetSalesKpi:'Net Sales KPI',viewProductsKpi:'Products KPI',viewCustomersKpi:'Customers KPI',viewSuppliersKpi:'Suppliers KPI',branding:'Branding',tax:'Tax & Currency',data:'Data Mgmt',users:'Users',usersCreateAdmin:'Create Admin Users',roles:'Roles',columns:'Columns',security:'Security',activityLogs:'View Activity Logs',activityLogsConfig:'Edit Tracking Config',dropdowns:'Dropdowns',invoiceTemplate:'Invoice Template',reportConfig:'Report Config',prodConfig:'Prod Config',spoConfig:'SPO Config'};
+  const actionLabels = {view:'View',add:'Add',edit:'Edit',delete:'Delete',viewPrices:'See Prices',export:'Export',viewValues:'See Values',viewContact:'See Contact',viewWelcomeBanner:'Welcome Banner',viewDashFilters:'Dashboard Filters',viewSalesKpi:'Sales KPI',viewPurchaseKpi:'Purchase KPI',viewStockAlerts:'Stock Alerts KPI',viewRecentOrders:'Recent Orders',viewMonthlyChart:'Monthly Chart',viewTopProducts:'Top Products',viewCategoryChart:'Inventory by Category',viewRevenueByCategoryChart:'Revenue by Category',viewLowStockAlertsCard:'Low Stock Alerts Card',viewGrossProfitKpi:'Gross Profit KPI',viewInventoryValueKpi:'Inventory Value KPI',viewTotalOrdersKpi:'Total Orders KPI',viewPendingKpi:'Pending KPI',viewUnpaidKpi:'Unpaid KPI',viewCancelledKpi:'Cancelled KPI',viewGrossSalesKpi:'Gross Sales KPI',viewNetSalesKpi:'Total Billed KPI',viewTaxKpi:'Tax KPI',viewShippingKpi:'Shipping KPI',viewPackagingKpi:'Packaging KPI',viewProductsKpi:'Products KPI',viewCustomersKpi:'Customers KPI',viewSuppliersKpi:'Suppliers KPI',branding:'Branding',tax:'Tax & Currency',data:'Data Mgmt',users:'Users',usersCreateAdmin:'Create Admin Users',roles:'Roles',columns:'Columns',security:'Security',activityLogs:'View Activity Logs',activityLogsConfig:'Edit Tracking Config',dropdowns:'Dropdowns',invoiceTemplate:'Invoice Template',reportConfig:'Report Config',prodConfig:'Prod Config',spoConfig:'SPO Config'};
 
   const body = `<div class="form-grid">
     <div class="form-group"><label class="form-label">Role Name <span class="required">*</span></label><input class="form-control" id="roleName" value="${escapeHtml(r?.name||'')}" placeholder="e.g. Store Manager"></div>
@@ -17083,6 +17688,7 @@ function openRoleModal(editId) {
   const footer = `<button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
     <button class="btn btn-primary" onclick="saveRole(${editId||'null'})">${r?'Update':'Create'} Role</button>`;
   openModal(title, body, footer, 'lg');
+  _wireOrderEntryDeps(document.getElementById('rolePermMatrix'));
 }
 
 function saveRole(editId) {
@@ -17102,6 +17708,7 @@ function saveRole(editId) {
       if (!perms.settings) perms.settings = {};
       ADMIN_GRADE_SETTINGS_PERMS.forEach(k => { perms.settings[k] = false; });
   }
+  _normalizeOrderEntry(perms);
 
   if (!state.settings.roles) state.settings.roles = [];
   if (editId) {
@@ -17305,7 +17912,8 @@ function renderProdConfigSettings(el) {
       <div class="form-grid">
         <div class="form-group">
           <label class="form-label">Low Stock Alert Threshold</label>
-          <input class="form-control" id="pcLowStock" type="number" min="1" value="${state.settings.lowStockThreshold || 5}">
+          <input class="form-control" id="pcLowStock" type="number" min="0" step="1" value="${_lowStockThreshold()}">
+          <span class="form-hint">0 = alert only when a product is out of stock.</span>
           <span class="form-hint">Products at or below this stock level will show alerts</span>
         </div>
       </div>
@@ -17461,7 +18069,8 @@ function saveProdConfig() {
       customFields: [...document.querySelectorAll('.pcQrCustomCol:checked')].map(c => c.dataset.key),
     },
   };
-  state.settings.lowStockThreshold = parseInt(document.getElementById('pcLowStock').value) || 5;
+  { const v = parseInt(document.getElementById('pcLowStock').value, 10);
+    state.settings.lowStockThreshold = Number.isFinite(v) && v >= 0 ? v : 5; }
   // Track changes
   const newCfg = state.settings.productConfig;
   const configChanges = [];
@@ -18475,67 +19084,141 @@ function filterActivityLogs() {
 // ============================================================
 let _colSettingsSnapshot = null;
 
+/* ---- Settings -> Columns (redesigned in 3.18) ----
+   One table at a time, picked from coloured tabs: the five tables used to run
+   together in one long list that was hard to tell apart on a phone. Each
+   column is a card - move up / down with the arrows (dragging still works
+   with a mouse; it never worked on touch), a show / hide switch, filter type,
+   required, edit, delete. A preview shows the table's header in its current
+   order, and a sticky bar says whether anything is still unsaved. */
+let _colEditorTable = 'products';
+const COL_EDITOR_TABLES = [
+  { key: 'products',       label: 'Products',        icon: 'products',  color: 'var(--kpi-purple)' },
+  { key: 'customers',      label: 'Customers',       icon: 'customers', color: 'var(--kpi-teal)' },
+  { key: 'suppliers',      label: 'Suppliers',       icon: 'suppliers', color: 'var(--kpi-blue)' },
+  { key: 'salesOrders',    label: 'Sales Orders',    icon: 'sales',     color: 'var(--kpi-green)' },
+  { key: 'purchaseOrders', label: 'Purchase Orders', icon: 'purchase',  color: 'var(--kpi-pink)' },
+];
+const COL_FILTER_TYPES = [['none', 'No filter'], ['dropdown', 'Dropdown'], ['search', 'Search'], ['both', 'Dropdown + search'], ['numeric', 'Numeric']];
+
 function renderColumnsSettings(el) {
+  if (!el) return;
   // Take snapshot for cancel
   if (!_colSettingsSnapshot) _colSettingsSnapshot = JSON.parse(JSON.stringify(state.settings.tableConfig || {}));
+  const cfgAll = state.settings.tableConfig || {};
+  const t = COL_EDITOR_TABLES.find(x => x.key === _colEditorTable) || COL_EDITOR_TABLES[0];
+  const tk = t.key;
+  const all = getTableColumns(tk, true);
+  const live = all.filter(c => c.deleted !== true);
+  const gone = all.filter(c => c.deleted === true);
+  const shown = live.filter(c => c.visible !== false);
+  const changed = k => JSON.stringify(cfgAll[k] || []) !== JSON.stringify(_colSettingsSnapshot[k] || []);
+  const dirty = COL_EDITOR_TABLES.some(x => changed(x.key));
+  const esc = v => escapeHtml(String(v == null ? '' : v));
+  const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
 
-  const tables = [
-    { key:'products', label:'Products' },
-    { key:'customers', label:'Customers' },
-    { key:'suppliers', label:'Suppliers' },
-    { key:'salesOrders', label:'Sales Orders' },
-    { key:'purchaseOrders', label:'Purchase Orders' },
-  ];
+  const tabs = COL_EDITOR_TABLES.map(x => {
+    const cols = getTableColumns(x.key);
+    const on = x.key === tk;
+    return `<button type="button" class="cc-pill${on ? ' active' : ''}" style="--tbl:${x.color}" onclick="_colEditorSwitch('${x.key}')" aria-pressed="${on}">
+      <svg><use href="#icon-${x.icon}"/></svg><span>${x.label}</span><em>${cols.filter(c => c.visible !== false).length}/${cols.length}</em>
+      ${changed(x.key) ? '<i class="cc-dot" title="Unsaved changes"></i>' : ''}</button>`;
+  }).join('');
 
-  let html = '<div class="card"><div class="card-header"><span class="card-title">Column Configuration</span></div><div class="card-body">';
-  html += '<p style="color:var(--text-secondary);font-size:13px;margin-bottom:16px">Configure columns: drag rows to reorder, toggle visibility, rename, set filter types. <strong>Drag order also controls the placement of custom fields in the Add/Edit forms.</strong> Click <strong>Save</strong> to apply changes.</p>';
-
-  tables.forEach(t => {
-    const cols = getTableColumns(t.key, true);
-    html += `<h4 style="margin:20px 0 8px">${t.label} Table</h4>`;
-    html += `<div id="colList_${t.key}" class="col-editor-list" data-table="${t.key}">`;
-    cols.forEach((c, i) => {
-      const ft = c.filterType || 'none';
-      const isDeleted = c.deleted === true;
-      const rowStyle = isDeleted ? 'opacity:0.5;background:var(--bg-input)' : '';
-      html += `<div class="col-editor-item" draggable="${isDeleted ? 'false' : 'true'}" data-key="${c.key}" data-idx="${i}" style="${rowStyle}"
-        ondragstart="colDragStart(event)" ondragover="colDragOver(event)" ondrop="colDrop(event,'${t.key}')" ondragend="colDragEnd(event)">
-        <span class="drag-handle">&#x2630;</span>
-        <span class="col-name" style="${isDeleted ? 'text-decoration:line-through' : ''}">${escapeHtml(c.label)}</span>
-        <code style="font-size:10px;color:var(--text-muted);background:var(--bg-input);padding:1px 6px;border-radius:3px" title="Internal key — used in saved data and CSV imports">${escapeHtml(c.key)}</code>
-        ${c.isCustom ? `<span class="badge badge-info" style="font-size:9px">Custom</span>` : ''}
-        ${isDeleted ? `<span class="badge" style="font-size:9px;background:var(--color-danger);color:white">Deleted</span>` : ''}
-        <span style="font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px" title="Data type">${escapeHtml(c.type || 'text')}</span>
-        ${isDeleted ? '' : `<select style="font-size:10px;padding:2px 4px;border:1px solid var(--border-color);border-radius:4px;background:var(--bg-input);width:100px" onchange="stageColFilterType('${t.key}','${c.key}',this.value)" title="Filter type">
-          <option value="none" ${ft==='none'?'selected':''}>No Filter</option>
-          <option value="dropdown" ${ft==='dropdown'?'selected':''}>Dropdown</option>
-          <option value="search" ${ft==='search'?'selected':''}>Search</option>
-          <option value="both" ${ft==='both'?'selected':''}>Dropdown & Search</option>
-          <option value="numeric" ${ft==='numeric'?'selected':''}>Numeric</option>
-        </select>`}
-        <div class="col-actions">
-          ${isDeleted ? `<button onclick="restoreColumn('${t.key}','${c.key}')" title="Restore Column" style="color:var(--color-success)"><svg style="width:14px;height:14px;fill:var(--color-success)"><use href="#icon-check"/></svg></button>` : `
-          <button onclick="toggleColVisibility('${t.key}','${c.key}')" title="${c.visible?'Hide':'Show'}">
-            <svg style="width:14px;height:14px;fill:${c.visible?'var(--color-success)':'var(--text-muted)'}"><use href="#icon-eye"/></svg>
-          </button>
-          <button onclick="editColumnDef('${t.key}','${c.key}')" title="Edit Column">
-            <svg style="width:14px;height:14px;fill:var(--brand-primary)"><use href="#icon-edit"/></svg>
-          </button>
-          <button onclick="toggleColMandatory('${t.key}','${c.key}')" title="${c.mandatory?'Make optional':'Make mandatory'}" style="color:${c.mandatory?'var(--color-warning)':'var(--text-muted)'}">
-            &#9733;
-          </button>
-          <button onclick="deleteColumn('${t.key}','${c.key}',${!!c.isCustom})" title="Delete Column"><svg style="width:14px;height:14px;fill:var(--color-danger)"><use href="#icon-delete"/></svg></button>`}
+  const rows = live.map((c, i) => {
+    const key = c.key, label = esc(c.label), visible = c.visible !== false, req = !!c.mandatory;
+    const ft = c.filterType || 'none';
+    return `<div class="col-editor-item cc-row${visible ? '' : ' is-hidden'}" draggable="true" data-key="${esc(key)}"
+        ondragstart="colDragStart(event)" ondragover="colDragOver(event)" ondrop="colDrop(event,'${tk}')" ondragend="colDragEnd(event)">
+      <div class="cc-order">
+        <button type="button" class="cc-move" onclick="_colMove('${tk}','${key}',-1)" ${i === 0 ? 'disabled' : ''} title="Move up" aria-label="Move ${label} up"><svg viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg></button>
+        <span class="cc-num">${i + 1}</span>
+        <button type="button" class="cc-move" onclick="_colMove('${tk}','${key}',1)" ${i === live.length - 1 ? 'disabled' : ''} title="Move down" aria-label="Move ${label} down"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
+      </div>
+      <div class="cc-main">
+        <div class="cc-title">
+          <span class="drag-handle" title="Drag to reorder" aria-hidden="true">&#x2807;</span>
+          <span class="col-name">${label}</span>
+          ${c.isCustom ? '<span class="cc-tag cc-tag-custom">Custom</span>' : ''}
+          ${req ? '<span class="cc-tag cc-tag-req">Required</span>' : ''}
+          ${visible ? '' : '<span class="cc-tag cc-tag-off">Hidden</span>'}
         </div>
-      </div>`;
-    });
-    html += `</div><button class="btn btn-sm btn-secondary mt-md" onclick="addCustomColumn('${t.key}')"><svg><use href="#icon-add"/></svg> Add Custom Column</button>`;
-  });
-  html += `<div style="margin-top:24px;display:flex;gap:8px;justify-content:flex-end">
-    <button class="btn btn-secondary" onclick="cancelColumnSettings()">Cancel</button>
-    <button class="btn btn-primary" onclick="saveColumnSettings()"><svg><use href="#icon-check"/></svg> Save Changes</button>
+        <div class="cc-meta"><code title="Internal key - used in saved data and CSV imports">${esc(key)}</code><span>${esc(c.type || 'text')}</span></div>
+        <div class="cc-controls">
+          <label class="cc-filter"><span>Filter</span>
+            <select onchange="stageColFilterType('${tk}','${key}',this.value);renderColumnsSettings(document.getElementById('settingsContent'))" aria-label="Filter type for ${label}">
+              ${COL_FILTER_TYPES.map(([v, l]) => `<option value="${v}" ${ft === v ? 'selected' : ''}>${l}</option>`).join('')}
+            </select></label>
+          <button type="button" class="cc-chip${req ? ' on' : ''}" onclick="toggleColMandatory('${tk}','${key}')" aria-pressed="${req}" title="${req ? 'Required when adding or editing - tap to make optional' : 'Optional - tap to make it required'}">&#9733; Required</button>
+          <button type="button" class="cc-chip" onclick="editColumnDef('${tk}','${key}')"><svg><use href="#icon-edit"/></svg> Edit</button>
+          <button type="button" class="cc-chip cc-danger" onclick="deleteColumn('${tk}','${key}',${!!c.isCustom})" title="Delete column" aria-label="Delete ${label}"><svg><use href="#icon-delete"/></svg></button>
+        </div>
+      </div>
+      <label class="cc-switch" title="${visible ? 'Shown in the table - tap to hide' : 'Hidden - tap to show'}">
+        <input type="checkbox" ${visible ? 'checked' : ''} onchange="_colSetVisible('${tk}','${key}',this.checked)" aria-label="Show ${label} in the table">
+        <span class="cc-track"></span>
+      </label>
+    </div>`;
+  }).join('');
+
+  const filterable = live.filter(c => (c.filterType || 'none') !== 'none').length;
+  const custom = live.filter(c => c.isCustom).length;
+  const required = live.filter(c => c.mandatory).length;
+
+  el.innerHTML = `<div class="card"><div class="card-header"><span class="card-title">Column Configuration</span></div><div class="card-body cc-editor" style="--tbl:${t.color}">
+    <div class="cc-tabs" role="tablist" aria-label="Table">${tabs}</div>
+    <div class="cc-head">
+      <div class="cc-head-icon"><svg><use href="#icon-${t.icon}"/></svg></div>
+      <div style="flex:1;min-width:0">
+        <h3>${t.label} table</h3>
+        <p>${shown.length} of ${live.length} shown${custom ? ' · ' + custom + ' custom' : ''} · ${plural(filterable, 'filter')}${required ? ' · ' + required + ' required' : ''}</p>
+      </div>
+      <button class="btn btn-sm btn-primary" onclick="addCustomColumn('${tk}')"><svg><use href="#icon-add"/></svg> Custom column</button>
+    </div>
+    <div class="cc-preview"><span class="cc-preview-label">Preview</span>
+      <div class="cc-preview-cols">${shown.map(c => `<span>${esc(c.label)}</span>`).join('') || '<em style="font-size:12px;color:var(--text-muted)">No columns shown</em>'}</div></div>
+    <p class="cc-hint">The order here is the order of the table's columns${tk.endsWith('Orders') ? '' : ' and of custom fields in the Add / Edit form'}. Use the arrows (or drag with a mouse); the switch shows or hides a column. Nothing changes for anyone until you save.</p>
+    <div id="colList_${tk}" class="col-editor-list" data-table="${tk}">${rows || '<p class="cc-hint">No columns.</p>'}</div>
+    ${gone.length ? `<details class="cc-deleted"><summary>Deleted columns (${gone.length})</summary>
+      ${gone.map(c => `<div class="cc-gone"><span>${esc(c.label)}</span><code>${esc(c.key)}</code>
+        <button type="button" class="cc-chip" onclick="restoreColumn('${tk}','${c.key}')"><svg><use href="#icon-check"/></svg> Restore</button></div>`).join('')}
+    </details>` : ''}
+  </div></div>
+  <!-- Outside the card: .card clips overflow, which stops position:sticky from sticking. -->
+  <div class="cc-savebar${dirty ? ' dirty' : ''}">
+    <span class="cc-save-state">${dirty ? 'Unsaved changes' : 'All changes saved'}</span>
+    <button class="btn btn-secondary btn-sm" onclick="cancelColumnSettings()" ${dirty ? '' : 'disabled'}>Discard</button>
+    <button class="btn btn-primary btn-sm" onclick="saveColumnSettings()" ${dirty ? '' : 'disabled'}><svg><use href="#icon-check"/></svg> Save changes</button>
   </div>`;
-  html += '</div></div>';
-  el.innerHTML = html;
+}
+
+function _colEditorSwitch(key) {
+  _colEditorTable = key;
+  renderColumnsSettings(document.getElementById('settingsContent'));
+}
+
+/** Show or hide a column (staged until Save). The old eye button flipped `visible`, which did nothing when it was unset. */
+function _colSetVisible(tableKey, colKey, on) {
+  const col = state.settings.tableConfig[tableKey]?.find(c => c.key === colKey);
+  if (col) col.visible = !!on;
+  renderColumnsSettings(document.getElementById('settingsContent'));
+}
+
+/** Move a column one place up (-1) or down (+1) among the columns not deleted (staged until Save). */
+function _colMove(tableKey, colKey, dir) {
+  const cols = state.settings.tableConfig[tableKey];
+  if (!cols) return;
+  const live = cols.filter(c => c.deleted !== true).sort((a, b) => a.order - b.order);
+  const i = live.findIndex(c => c.key === colKey), j = i + dir;
+  if (i < 0 || j < 0 || j >= live.length) return;
+  if (live[i].order === live[j].order) {
+    // Equal order values cannot be swapped: number every column first, keeping today's order.
+    cols.slice().sort((a, b) => a.order - b.order).forEach((c, n) => { c.order = n; });
+  }
+  const o = live[i].order; live[i].order = live[j].order; live[j].order = o;
+  renderColumnsSettings(document.getElementById('settingsContent'));
+  const row = document.querySelector(`.cc-row[data-key="${CSS.escape(colKey)}"]`);
+  if (row) row.scrollIntoView({ block: 'nearest' });
 }
 
 function stageColFilterType(tableKey, colKey, filterType) {
@@ -18570,6 +19253,7 @@ function saveColumnSettings() {
     logActivity('Column settings updated (' + changes.length + ' change' + (changes.length > 1 ? 's' : '') + ')', 'blue', { actionType:'update', entityType:'config', entityName:'Column Settings', changes });
   }
   showToast('Column settings saved', 'success');
+  renderColumnsSettings(document.getElementById('settingsContent'));
 }
 
 function cancelColumnSettings() {
@@ -19286,6 +19970,7 @@ function doAddCustomColumn(tableKey) {
     saveData('settings');
   }
   closeModal();
+  _colSettingsSnapshot = null;              // saveData saved everything staged as well
   renderColumnsSettings(document.getElementById('settingsContent'));
   const changes = [{field:'Table',oldValue:'',newValue:tableKey},{field:'Type',oldValue:'',newValue:type},{field:'Mandatory',oldValue:'',newValue:String(mandatory)}];
   if (filled) changes.push({field:'Backfilled records',oldValue:'',newValue:`${filled} set to "${backfillValue}"`});
@@ -19313,6 +19998,7 @@ function deleteColumn(tableKey, colKey, isCustom) {
         // Save the records too. Only settings used to be saved, so the values
         // lingered on disk and were swept up by some unrelated later save.
         saveData('settings', _collectionForTable(tableKey));
+        _colSettingsSnapshot = null;
         renderColumnsSettings(document.getElementById('settingsContent'));
         logActivity('Deleted custom column “' + col.label + '” from ' + tableKey, 'red', { actionType:'delete', entityType:'config', entityName:'Column: ' + col.label });
         showToast('Custom column deleted','warning');
@@ -19365,6 +20051,7 @@ function _doSoftDeleteBuiltinColumn(tableKey, colKey) {
   }
   saveData('settings');
   closeModal();
+  _colSettingsSnapshot = null;
   renderColumnsSettings(document.getElementById('settingsContent'));
   logActivity('Deleted built-in column “' + col.label + '” from ' + tableKey + (erase ? ' (erased data on ' + erased + ' record' + (erased === 1 ? '' : 's') + ')' : ' (data preserved)'), 'red', { actionType:'delete', entityType:'config', entityName:'Column: ' + col.label });
   showToast(erase ? 'Column deleted and data erased' : 'Column deleted (data preserved)', 'warning');
@@ -19376,6 +20063,7 @@ function restoreColumn(tableKey, colKey) {
   col.deleted = false;
   col.visible = true;
   saveData('settings');
+  _colSettingsSnapshot = null;
   renderColumnsSettings(document.getElementById('settingsContent'));
   logActivity('Restored column “' + col.label + '” in ' + tableKey, 'blue', { actionType:'update', entityType:'config', entityName:'Column: ' + col.label });
   showToast('Column restored','success');
@@ -20138,7 +20826,7 @@ function loadSampleData() {
           viewGrossProfitKpi: false, viewInventoryValueKpi: false, viewTotalOrdersKpi: true,
           viewPendingKpi: true, viewUnpaidKpi: true, viewCancelledKpi: false,
           viewGrossSalesKpi: true, viewNetSalesKpi: false, viewProductsKpi: true, viewCustomersKpi: true, viewSuppliersKpi: false },
-        products: { view: true, add: false, edit: false, delete: false, viewPrices: false },
+        products: { view: true, add: false, edit: false, delete: false, viewPrices: true },
         customers: { view: true, add: true, edit: false, delete: false, viewContact: true },
         suppliers: { view: false, add: false, edit: false, delete: false, viewContact: false },
         sales: { view: true, add: true, edit: false, delete: false, viewValues: true },
