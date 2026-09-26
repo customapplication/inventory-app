@@ -512,6 +512,8 @@ table { border-collapse: collapse; width: 100%; }
 .wa-dd-row:hover { background:var(--bg-input); }
 .wa-dd-row input { width:16px; height:16px; flex:none; accent-color:var(--brand-primary); }
 .wa-dd-row .n { margin-left:auto; color:var(--text-muted); font-size:11px; }
+.wa-dd-row.dim > span:not(.n) { color:var(--text-muted); }
+#whatsappContent.wa-dd-open .wa-genbar { position:static; box-shadow:none; }
 .wa-dd-empty { font-size:12px; color:var(--text-muted); margin:6px 2px; }
 .wa-genbar { position:sticky; bottom:0; z-index:5; margin-top:12px; padding:10px 12px; display:flex; gap:10px 14px; align-items:center; flex-wrap:wrap;
   background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--border-radius); box-shadow:0 -4px 16px rgba(0,0,0,.08); }
@@ -3102,7 +3104,7 @@ const KEYRING_KEY = 'covervault.keyring.v1';
 const PROFILE_KEY = 'covervault.profile.v1';
 const DEVICE_KEY = 'covervault.device.v1';
 const PBKDF2_ITER = 210000;
-const APP_BUILD = '3.16.4';
+const APP_BUILD = '3.16.7';
 
 // Collections that participate in sync (record arrays, merged by id).
 const SYNC_COLLECTIONS = ['products', 'customers', 'suppliers', 'orders', 'activityLog'];
@@ -6852,6 +6854,24 @@ function invalidateSearchIndex(type) {
   _searchIndexVersion[type] = -1;
 }
 
+/**
+ * The words of a search box, lower-cased ("  iPhone   PRO " -> ["iphone", "pro"]).
+ *
+ * Every search box matches word by word: each typed word must appear somewhere
+ * - in any order, and as part of a longer word - so "iphone pro", "pro 15" and
+ * "hone" all find "Apple iPhone 15 Pro Case". They used to need the typed text
+ * as one unbroken phrase, which only worked when typing from the start of a
+ * name ("iphone pro" found nothing, because "15" sits between the words).
+ */
+function _searchWords(query) {
+  return String(query == null ? '' : query).toLowerCase().split(/\s+/).filter(Boolean);
+}
+function matchesSearch(haystack, words) {
+  if (!words || !words.length) return true;
+  const h = String(haystack == null ? '' : haystack).toLowerCase();
+  return words.every(w => h.includes(w));
+}
+
 // ============================================================
 // COLUMN FILTERS (Excel AutoFilter style)
 // ============================================================
@@ -7606,12 +7626,12 @@ function renderProducts() {
       catFilter_el.add(new Option(c, c));
     });
   }
-  const search = (document.getElementById('productSearchInput').value || '').toLowerCase();
+  const search = _searchWords(document.getElementById('productSearchInput').value);
   const catFilter = document.getElementById('productCategoryFilter').value;
 
-  const searchIdx = search ? getSearchIndex('products') : null;
+  const searchIdx = search.length ? getSearchIndex('products') : null;
   let data = state.products.filter(p => {
-    const matchSearch = !search || (searchIdx.get(p.id) || '').includes(search);
+    const matchSearch = !search.length || matchesSearch(searchIdx.get(p.id), search);
     const matchCat = !catFilter || p.category === catFilter;
     return matchSearch && matchCat;
   });
@@ -10055,10 +10075,10 @@ function timeAgo(date) {
 // 14. CUSTOMERS MODULE
 // ============================================================
 function renderCustomers() {
-  const search = (document.getElementById('customerSearchInput').value || '').toLowerCase();
-  const searchIdx = search ? getSearchIndex('customers') : null;
+  const search = _searchWords(document.getElementById('customerSearchInput').value);
+  const searchIdx = search.length ? getSearchIndex('customers') : null;
   let data = state.customers.filter(c => {
-    return !search || (searchIdx.get(c.id) || '').includes(search);
+    return !search.length || matchesSearch(searchIdx.get(c.id), search);
   });
 
   data = applyColumnFiltersToData(data, 'customers');
@@ -10237,10 +10257,10 @@ function deleteCustomer(id) {
 // 15. SUPPLIERS MODULE
 // ============================================================
 function renderSuppliers() {
-  const search = (document.getElementById('supplierSearchInput').value || '').toLowerCase();
-  const searchIdx = search ? getSearchIndex('suppliers') : null;
+  const search = _searchWords(document.getElementById('supplierSearchInput').value);
+  const searchIdx = search.length ? getSearchIndex('suppliers') : null;
   let data = state.suppliers.filter(s => {
-    return !search || (searchIdx.get(s.id) || '').includes(search);
+    return !search.length || matchesSearch(searchIdx.get(s.id), search);
   });
 
   data = applyColumnFiltersToData(data, 'suppliers');
@@ -10435,17 +10455,17 @@ function renderOrders(type) {
   const orderType = type === 'sales' ? 'Sales' : 'Purchase';
   const searchInput = document.getElementById(type + 'SearchInput');
   const statusFilter = document.getElementById(type + 'StatusFilter');
-  const search = (searchInput?.value || '').toLowerCase();
+  const search = _searchWords(searchInput?.value);
   const statusVal = statusFilter?.value || '';
 
   let data = state.orders.filter(o => {
     if (o.type !== orderType) return false;
     if (statusVal && o.status !== statusVal) return false;
-    if (search) {
+    if (search.length) {
       const partyName = type === 'sales'
         ? (state.customers.find(c => c.id === o.partyId)?.name || '')
         : (state.suppliers.find(s => s.id === o.partyId)?.name || '');
-      return [o.orderNumber, partyName, o.status, o.paymentStatus || ''].some(f => (f || '').toLowerCase().includes(search));
+      return matchesSearch([o.orderNumber, partyName, o.status, o.paymentStatus || ''].join(' '), search);
     }
     return true;
   });
@@ -13969,8 +13989,11 @@ function importProductsCSV(event) {
         const resolved = _resolveImportHeader('products', h);
         return resolved
           ? { rawLower: lower, key: resolved.key, isCustom: resolved.isCustom }
-          : { rawLower: lower, key: lower, isCustom: false };
+          // "In Stock" (this app's own export) -> instock, "Stock Qty" -> stockqty
+          : { rawLower: lower, key: lower.replace(/[\s_.-]+/g, ''), isCustom: false };
       });
+      // "1,200" is 1200, not 1 (parseInt stops at the comma).
+      const num = v => String(v ?? '').replace(/[,\s₹]/g, '');
       let imported = 0;
 
       for (let i = 1; i < rows.length; i++) {
@@ -13998,11 +14021,11 @@ function importProductsCSV(event) {
           brand: row.brand || '',
           model: row.model || '',
           category: row.category || '',
-          color: row.color || '',
+          color: row.color || row.colour || '',
           colorHex: '#000000',
-          purchasePrice: parseFloat(row.purchaseprice || row.buyprice || row.cost) || 0,
-          salesPrice: parseFloat(row.salesprice || row.sellprice || row.price) || 0,
-          inStock: parseInt(row.instock || row.stock || row.quantity) || 0,
+          purchasePrice: parseFloat(num(row.purchaseprice || row.buyprice || row.costprice || row.cost)) || 0,
+          salesPrice: parseFloat(num(row.salesprice || row.sellprice || row.saleprice || row.price)) || 0,
+          inStock: parseInt(num(row.instock || row.stock || row.quantity || row.qty || row.stockqty)) || 0,
           description: row.description || row.designdescription || '',
           imageUrl: '',
           isMagSafe: ['true','yes','1'].includes((row.ismagsafe || row.magsafe || '').toLowerCase()),
@@ -14311,15 +14334,16 @@ function setupSearchClearButtons() {
 
 function globalSearch(query) {
   if (!query || query.length < 2) return;
-  const q = query.toLowerCase();
+  const q = _searchWords(query);
+  const hit = fields => matchesSearch(fields.filter(Boolean).join(' '), q);
 
   // Map page names to their search input IDs and data
   const searchTargets = [
-    { page: 'products', inputId: 'productSearchInput', count: state.products.filter(p => [p.name, p.brand, p.model, p.category, p.sku, p.description].some(f => (f||'').toLowerCase().includes(q))).length },
-    { page: 'customers', inputId: 'customerSearchInput', count: state.customers.filter(c => [c.name, c.email, c.phone, c.city, c.address].some(f => (f||'').toLowerCase().includes(q))).length },
-    { page: 'suppliers', inputId: 'supplierSearchInput', count: state.suppliers.filter(s => [s.name, s.email, s.phone, s.contactPerson, s.city].some(f => (f||'').toLowerCase().includes(q))).length },
-    { page: 'sales', inputId: 'salesSearchInput', count: state.orders.filter(o => o.type === 'Sales' && [o.orderNumber, o.status, o.paymentStatus, (state.customers.find(c=>c.id===o.partyId)?.name||'')].some(f => (f||'').toLowerCase().includes(q))).length },
-    { page: 'purchases', inputId: 'purchasesSearchInput', count: state.orders.filter(o => o.type === 'Purchase' && [o.orderNumber, o.status, o.paymentStatus, (state.suppliers.find(s=>s.id===o.partyId)?.name||'')].some(f => (f||'').toLowerCase().includes(q))).length },
+    { page: 'products', inputId: 'productSearchInput', count: state.products.filter(p => hit([p.name, p.brand, p.model, p.color, p.category, p.sku, p.description])).length },
+    { page: 'customers', inputId: 'customerSearchInput', count: state.customers.filter(c => hit([c.name, c.email, c.phone, c.city, c.address])).length },
+    { page: 'suppliers', inputId: 'supplierSearchInput', count: state.suppliers.filter(s => hit([s.name, s.email, s.phone, s.contactPerson, s.city])).length },
+    { page: 'sales', inputId: 'salesSearchInput', count: state.orders.filter(o => o.type === 'Sales' && hit([o.orderNumber, o.status, o.paymentStatus, (state.customers.find(c=>c.id===o.partyId)?.name||'')])).length },
+    { page: 'purchases', inputId: 'purchasesSearchInput', count: state.orders.filter(o => o.type === 'Purchase' && hit([o.orderNumber, o.status, o.paymentStatus, (state.suppliers.find(s=>s.id===o.partyId)?.name||'')])).length },
   ];
 
   // Filter to accessible pages only, then find best match
@@ -14914,9 +14938,9 @@ const _waLc = s => String(s == null ? '' : s).trim().toLowerCase();
  * choosing Apple narrows the Model list to Apple's models. A list set to
  * "all except these" drops the ticked values instead of keeping only them.
  */
-function waMatchingProducts(except) {
+function waMatchingProducts(except, ignoreStockAndCost) {
   const f = waFilters;
-  const q = f.search.trim().toLowerCase();
+  const q = _searchWords(f.search);
   const min = f.costMin === '' ? null : Number(f.costMin);
   const max = f.costMax === '' ? null : Number(f.costMax);
   const listed = (key, v) => {
@@ -14929,8 +14953,8 @@ function waMatchingProducts(except) {
   return (state.products || []).filter(p => {
     if (!p) return false;
     const stock = Number(p.inStock) || 0;
-    if (f.stock === 'in' && stock <= 0) return false;
-    if (f.stock === 'out' && stock > 0) return false;
+    if (!ignoreStockAndCost && f.stock === 'in' && stock <= 0) return false;
+    if (!ignoreStockAndCost && f.stock === 'out' && stock > 0) return false;
     if (!listed('brand', p.brand)) return false;
     if (!listed('model', p.model)) return false;
     if (!listed('color', p.color)) return false;
@@ -14938,28 +14962,85 @@ function waMatchingProducts(except) {
     // Without "See Prices" the cost range is not offered, and not applied -
     // narrowing it down a rupee at a time would otherwise reveal every cost.
     const cost = Number(p.purchasePrice) || 0;
-    if (canCost && min != null && cost < min) return false;
-    if (canCost && max != null && cost > max) return false;
-    if (q) {
-      const hay = [p.name, p.brand, p.model, p.color, p.category, p.sku]
-        .map(x => String(x || '').toLowerCase()).join(' ');
-      if (!hay.includes(q)) return false;
-    }
+    if (!ignoreStockAndCost && canCost && min != null && cost < min) return false;
+    if (!ignoreStockAndCost && canCost && max != null && cost > max) return false;
+    if (q.length && !matchesSearch([p.name, p.brand, p.model, p.color, p.category, p.sku].join(' '), q)) return false;
     return true;
   });
 }
 
-/** A filter dropdown's choices: each value with how many product rows have it under the other filters. */
+/**
+ * A filter dropdown's choices, with how many product rows match each under
+ * ALL the other filters.
+ *
+ * Every value under the other list filters and the search is offered - even
+ * one with nothing in stock, shown greyed with 0. They used to be left out,
+ * and with "In stock only" on by default the lists missed every category,
+ * model and colour whose products had no stock yet (a new product usually
+ * starts at 0), so they looked out of date next to the "always new" lists,
+ * which show the whole catalogue.
+ */
 function waOptions(key) {
   const field = WA_FIELDS.find(x => x.key === key).field;
-  const counts = new Map();
-  for (const p of waMatchingProducts(key)) {
+  const live = new Set(waMatchingProducts(key).map(p => p.id));
+  const counts = new Map();   // value -> [matching every filter, all products with it]
+  for (const p of waMatchingProducts(key, true)) {
     const v = String(p[field] == null ? '' : p[field]).trim();
-    if (v) counts.set(v, (counts.get(v) || 0) + 1);
+    if (!v) continue;
+    const c = counts.get(v) || [0, 0];
+    if (live.has(p.id)) c[0]++;
+    c[1]++;
+    counts.set(v, c);
   }
   // Chosen earlier but matching nothing now: still listed, so it can be unticked.
-  for (const v of waFilters[key]) if (!counts.has(v)) counts.set(v, 0);
-  return [...counts].map(([value, count]) => ({ value, text: value, n: count })).sort((a, b) => _waCmp(a.value, b.value));
+  for (const v of waFilters[key]) if (!counts.has(v)) counts.set(v, [0, 0]);
+  return [...counts].map(([value, [n, total]]) => ({ value, text: value, n, total, dim: n === 0 }))
+    .sort((a, b) => _waCmp(a.value, b.value));
+}
+
+/**
+ * What the filters leave out of the message, and why, in plain words.
+ *
+ * A short list used to look like missing data: with "In stock only" (the
+ * default) every product at 0 stock is left out, and the lists then showed
+ * one category and one colour for a catalogue of hundreds - with nothing on
+ * the page saying that stock was the reason. Empty fields are counted too: a
+ * product with no category cannot appear in the Category list.
+ */
+function waCoverageHTML() {
+  const all = (state.products || []).filter(Boolean);
+  if (!all.length) return '';
+  const f = waFilters;
+  const n = v => v.toLocaleString('en-IN');
+  const pool = waMatchingProducts(null, true);           // the list choices and search, any stock or cost
+  const shown = waMatchingProducts().length;
+  const stocked = p => (Number(p.inStock) || 0) > 0;
+  const byStock = f.stock === 'in' ? pool.filter(p => !stocked(p)).length
+                : f.stock === 'out' ? pool.filter(stocked).length : 0;
+  const byCost = pool.length - shown - byStock;          // passed the stock test, outside the price range
+  const byLists = all.length - pool.length;
+  const lines = [`<strong>${n(shown)} of your ${n(all.length)} products</strong> go into this message.`];
+  if (byStock) lines.push(f.stock === 'in'
+    ? `<strong>${n(byStock)}</strong> more ${byStock === 1 ? 'matches your choices but has' : 'match your choices but have'} <strong>no stock</strong> on this device (0 or less), so ${byStock === 1 ? 'it is' : 'they are'} greyed in the lists and left out.
+       <button type="button" class="btn btn-secondary btn-sm" onclick="waSetStock('all')">Include out-of-stock</button>`
+    : `<strong>${n(byStock)}</strong> more ${byStock === 1 ? 'matches your choices but is' : 'match your choices but are'} in stock (Stock is set to <em>Out of stock only</em>).
+       <button type="button" class="btn btn-secondary btn-sm" onclick="waSetStock('all')">Show all</button>`);
+  if (byCost > 0) lines.push(`${n(byCost)} more ${byCost === 1 ? 'is' : 'are'} outside the cost price range.`);
+  if (byLists) lines.push(`${n(byLists)} ${byLists === 1 ? 'does' : 'do'} not match the brand, category, colour or model choices or the search.`);
+  const blank = WA_FIELDS.map(d => [d, all.filter(p => !String(p[d.field] == null ? '' : p[d.field]).trim()).length])
+    .filter(([, c]) => c);
+  if (blank.length) lines.push('Not in the lists because the field is empty: ' +
+    blank.map(([d, c]) => `${n(c)} with no ${d.label.toLowerCase()}`).join(', ') + ' (fill it in on the Products page).');
+  // Mostly hidden by stock: say it loudly, it is the usual reason a list looks wrong.
+  const loud = f.stock === 'in' && byStock > shown;
+  return `<div class="${loud ? 'wa-stale' : 'wa-note'}" style="display:block;margin:12px 0 0">${lines.map(l => `<div style="margin:2px 0">${l}</div>`).join('')}</div>`;
+}
+
+function waSetStock(v) {
+  waFilters.stock = v;
+  const s = document.getElementById('waStock');
+  if (s) s.value = v;
+  waFiltersChanged();
 }
 
 /** "Always new" choices: every value in the catalogue (not only this message's). */
@@ -15157,6 +15238,9 @@ function waToggleDD(id) {
   const opts = _waDDOpts[id] = d.options();
   const sel = new Set(d.get().map(String));
   const not = d.not();
+  const fld = d.modes ? WA_FIELDS.find(x => x.key === id).field : '';
+  const blankN = d.modes ? waMatchingProducts(id, true).filter(p => !String(p[fld] == null ? '' : p[fld]).trim()).length : 0;
+  const eg = opts.find(o => o.total && o.n !== o.total && o.n) || opts.find(o => o.total && o.n !== o.total);   // a real row to explain "n of total"
   panel.innerHTML = `
     ${d.modes ? `<div class="wa-dd-mode">
       <label><input type="radio" name="waMode_${id}" ${!not ? 'checked' : ''} onchange="waSetMode('${id}', false)"> Only these</label>
@@ -15168,12 +15252,16 @@ function waToggleDD(id) {
       <button type="button" class="btn btn-secondary btn-sm" onclick="waDDClear('${id}')">Clear</button>
     </div>
     <div class="wa-dd-list">${opts.length ? opts.map((o, i) => `
-      <label class="wa-dd-row" data-t="${escapeHtml(String(o.text).toLowerCase())}">
+      <label class="wa-dd-row${o.dim ? ' dim' : ''}" data-t="${escapeHtml(String(o.text).toLowerCase())}"${o.dim ? ' title="Nothing with this matches the other filters (for example, none in stock)"' : ''}>
         <input type="checkbox" ${sel.has(String(o.value)) ? 'checked' : ''} onchange="waPick('${id}', ${i}, this.checked)">
-        <span>${escapeHtml(o.text)}</span>${o.n != null ? `<span class="n">${o.n}</span>` : ''}</label>`).join('')
+        <span>${escapeHtml(o.text)}</span>${o.n != null ? `<span class="n">${o.total != null && o.total !== o.n ? `${o.n} of ${o.total}` : o.n}</span>` : ''}</label>`).join('')
       : `<p class="wa-dd-empty">${d.modes ? 'Nothing here matches the other filters.' : 'No products yet.'}</p>`}</div>
+    ${eg ? `<p class="wa-dd-empty" style="margin:0 2px 8px">“${escapeHtml(eg.text)} ${eg.n} of ${eg.total}”: ${eg.n} of the ${eg.total} products with it go into the message${waFilters.stock === 'in' ? ' — the rest usually have no stock' : ''}. Greyed: none of them do.</p>` : ''}
+    ${d.modes && blankN ? `<p class="wa-dd-empty" style="margin:0 2px 8px">${blankN.toLocaleString('en-IN')} product${blankN === 1 ? ' has' : 's have'} no ${escapeHtml(WA_FIELDS.find(x => x.key === id).label.toLowerCase())}, so ${blankN === 1 ? 'it is' : 'they are'} not listed here.</p>` : ''}
     <button type="button" class="btn btn-primary btn-sm" style="width:100%" onclick="waCloseDD()">Done</button>`;
   panel.hidden = false;
+  // While a list is open the Generate bar stops floating, so it never sits on top of it.
+  document.getElementById('whatsappContent')?.classList.add('wa-dd-open');
   document.getElementById('waDDBtn_' + id)?.setAttribute('aria-expanded', 'true');
   _waOpenDD = id;
 }
@@ -15183,6 +15271,7 @@ function waCloseDD() {
   const panel = document.getElementById('waDDPanel_' + _waOpenDD);
   if (panel) { panel.hidden = true; panel.innerHTML = ''; }
   document.getElementById('waDDBtn_' + _waOpenDD)?.setAttribute('aria-expanded', 'false');
+  document.getElementById('whatsappContent')?.classList.remove('wa-dd-open');
   _waOpenDD = '';
 }
 
@@ -15207,9 +15296,9 @@ function waSetMode(id, not) {
 }
 
 function waDDSearch(id, q) {
-  const needle = String(q || '').trim().toLowerCase();
+  const words = _searchWords(q);
   document.querySelectorAll(`#waDDPanel_${id} .wa-dd-row`).forEach(r => {
-    r.style.display = !needle || r.dataset.t.includes(needle) ? '' : 'none';
+    r.style.display = matchesSearch(r.dataset.t, words) ? '' : 'none';
   });
 }
 
@@ -15250,6 +15339,8 @@ function waFiltersChanged() {
   }
   const s = document.getElementById('waSummary');
   if (s) s.innerHTML = waSummaryHTML();
+  const c = document.getElementById('waCoverage');
+  if (c) c.innerHTML = waCoverageHTML();
   waPresetNote();
   waRenderResult();
 }
@@ -15432,6 +15523,7 @@ function renderWhatsApp() {
   // First visit after unlocking: carry on from the filters last used on this device.
   if (!_waRestored) { _waRestored = true; if (state.waLastFilters) waFilters = waNormFilters(state.waLastFilters); }
   _waOpenDD = '';
+  el.classList.remove('wa-dd-open');
   const canEdit = canAccess('whatsapp', 'edit');
   const cfg = waCfg();
   if (waFilters.template && !cfg.templates.some(t => t.id === waFilters.template)) waFilters.template = '';   // deleted meanwhile
@@ -15473,7 +15565,7 @@ function renderWhatsApp() {
         <input class="form-control" type="number" min="0" inputmode="decimal" style="width:120px" value="${escapeHtml(String(waFilters.costMax))}"
                oninput="waFilters.costMax=this.value;waFiltersChanged()"></div>` : ''}
       <div><label class="form-label">Stock</label>
-        <select class="form-control" style="width:auto" onchange="waFilters.stock=this.value;waFiltersChanged()">
+        <select class="form-control" id="waStock" style="width:auto" onchange="waSetStock(this.value)">
           <option value="in" ${sel('stock','in')}>In stock only</option>
           <option value="out" ${sel('stock','out')}>Out of stock only</option>
           <option value="all" ${sel('stock','all')}>All, in stock or not</option>
@@ -15485,8 +15577,24 @@ function renderWhatsApp() {
         </select></div>` : ''}
       <button class="btn btn-secondary btn-sm" onclick="waClearFilters()">Clear filters</button>
     </div>
+    <div id="waCoverage">${waCoverageHTML()}</div>
   </div></div>
 
+
+  <!-- Stays at the bottom of the screen while the filters are in view, so the
+       count and the button are never a long scroll away on a phone. -->
+  <div class="wa-genbar">
+    <p id="waSummary">${waSummaryHTML()}</p>
+    <button class="btn btn-primary btn-lg" onclick="waGenerate()">Generate message</button>
+  </div>
+
+  <div class="card mt-lg" id="waResultCard"><div class="card-body">
+    <p class="card-title" style="margin:0 0 10px">Message</p>
+    <div id="waResult"></div>
+  </div></div>
+
+  <!-- Settings for how the message is built: below it, out of the way of the
+       filters and the Generate bar. -->
   ${canEdit ? `
   <div class="card mt-lg"><div class="card-body">
     <p style="font-size:13px;margin:0 0 8px"><strong>What each line shows</strong> <span style="color:var(--text-muted);font-weight:400">&mdash; saved for every device</span></p>
@@ -15511,18 +15619,6 @@ function renderWhatsApp() {
     <div class="wa-dd-grid">${WA_MARKS.map(m => waDropdownHTML(m.id, m.label)).join('')}</div>
     ${Object.values(cfg.newMarks).some(a => a.length) ? `<button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="waClearMarks()">Clear all of these</button>` : ''}
   </div></div>` : ''}
-
-  <!-- Stays at the bottom of the screen while the filters are in view, so the
-       count and the button are never a long scroll away on a phone. -->
-  <div class="wa-genbar">
-    <p id="waSummary">${waSummaryHTML()}</p>
-    <button class="btn btn-primary btn-lg" onclick="waGenerate()">Generate message</button>
-  </div>
-
-  <div class="card mt-lg" id="waResultCard"><div class="card-body">
-    <p class="card-title" style="margin:0 0 10px">Message</p>
-    <div id="waResult"></div>
-  </div></div>
 
   ${!canEdit ? '' : waTextCardHTML(cfg)}`;
   waPresetNote();
