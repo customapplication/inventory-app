@@ -513,7 +513,8 @@ table { border-collapse: collapse; width: 100%; }
 .wa-dd-row input { width:16px; height:16px; flex:none; accent-color:var(--brand-primary); }
 .wa-dd-row .n { margin-left:auto; color:var(--text-muted); font-size:11px; }
 .wa-dd-row.dim > span:not(.n) { color:var(--text-muted); }
-#whatsappContent.wa-dd-open .wa-genbar { position:static; box-shadow:none; }
+#whatsappContent.wa-dd-open .wa-genbar,
+#whatsappContent:has(.wa-cfg :focus) .wa-genbar { position:static; box-shadow:none; }
 .wa-dd-empty { font-size:12px; color:var(--text-muted); margin:6px 2px; }
 .wa-genbar { position:sticky; bottom:0; z-index:5; margin-top:12px; padding:10px 12px; display:flex; gap:10px 14px; align-items:center; flex-wrap:wrap;
   background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--border-radius); box-shadow:0 -4px 16px rgba(0,0,0,.08); }
@@ -3104,7 +3105,7 @@ const KEYRING_KEY = 'covervault.keyring.v1';
 const PROFILE_KEY = 'covervault.profile.v1';
 const DEVICE_KEY = 'covervault.device.v1';
 const PBKDF2_ITER = 210000;
-const APP_BUILD = '3.16.7';
+const APP_BUILD = '3.16.8';
 
 // Collections that participate in sync (record arrays, merged by id).
 const SYNC_COLLECTIONS = ['products', 'customers', 'suppliers', 'orders', 'activityLog'];
@@ -15581,20 +15582,9 @@ function renderWhatsApp() {
   </div></div>
 
 
-  <!-- Stays at the bottom of the screen while the filters are in view, so the
-       count and the button are never a long scroll away on a phone. -->
-  <div class="wa-genbar">
-    <p id="waSummary">${waSummaryHTML()}</p>
-    <button class="btn btn-primary btn-lg" onclick="waGenerate()">Generate message</button>
-  </div>
-
-  <div class="card mt-lg" id="waResultCard"><div class="card-body">
-    <p class="card-title" style="margin:0 0 10px">Message</p>
-    <div id="waResult"></div>
-  </div></div>
-
-  <!-- Settings for how the message is built: below it, out of the way of the
-       filters and the Generate bar. -->
+  <!-- How the message is built (edit right only): after the filters, before
+       Generate, so everything that shapes the message comes first. -->
+  <div class="wa-cfg">
   ${canEdit ? `
   <div class="card mt-lg"><div class="card-body">
     <p style="font-size:13px;margin:0 0 8px"><strong>What each line shows</strong> <span style="color:var(--text-muted);font-weight:400">&mdash; saved for every device</span></p>
@@ -15620,7 +15610,23 @@ function renderWhatsApp() {
     ${Object.values(cfg.newMarks).some(a => a.length) ? `<button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="waClearMarks()">Clear all of these</button>` : ''}
   </div></div>` : ''}
 
-  ${!canEdit ? '' : waTextCardHTML(cfg)}`;
+  ${!canEdit ? '' : waTextCardHTML(cfg)}
+  </div>
+
+  <!-- Last on the page, after everything that shapes the message. The bar
+       still floats at the bottom of the screen while you scroll above it, so
+       Generate is never a long scroll away on a phone - but it drops back into
+       place while a dropdown is open or you are typing in the settings, so it
+       never sits on top of what you are working on. -->
+  <div class="wa-genbar">
+    <p id="waSummary">${waSummaryHTML()}</p>
+    <button class="btn btn-primary btn-lg" onclick="waGenerate()">Generate message</button>
+  </div>
+
+  <div class="card mt-lg" id="waResultCard"><div class="card-body">
+    <p class="card-title" style="margin:0 0 10px">Message</p>
+    <div id="waResult"></div>
+  </div></div>`;
   waPresetNote();
   waRenderResult();
 }
